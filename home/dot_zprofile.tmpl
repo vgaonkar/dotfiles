@@ -1,0 +1,10 @@
+# ~/.zprofile: executed by zsh(1) for login shells.
+
+if [ -f ~/.profile ]; then
+    . ~/.profile
+fi
+
+# SSH keychain
+if command -v keychain >/dev/null 2>&1; then
+    eval $(keychain --agents ssh --eval ~/.ssh/id_ed25519 2>/dev/null)
+fi

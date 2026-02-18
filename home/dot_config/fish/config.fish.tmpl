@@ -1,0 +1,32 @@
+# Fish configuration template
+
+# PATH modifications
+fish_add_path ~/bin ~/.local/bin
+fish_add_path $HOME/.dotnet/tools
+
+# Homebrew initialization
+{{ if eq .chezmoi.os "darwin" -}}
+eval (/opt/homebrew/bin/brew shellenv)
+{{ else if eq .chezmoi.os "linux" -}}
+if test -d /home/linuxbrew/.linuxbrew
+    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+end
+{{- end }}
+
+# Interactive shell configuration
+if status is-interactive
+    # Abbreviations
+    abbr ls 'eza'
+    abbr ll 'eza -al'
+    abbr la 'eza -a'
+    abbr l 'eza -F'
+    abbr cat 'bat'
+    abbr grep 'grep --color=auto'
+
+    # Tool initializations
+    zoxide init fish | source
+    fzf --fish | source
+    direnv hook fish | source
+    atuin init fish | source
+    starship init fish | source
+end

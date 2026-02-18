@@ -1,0 +1,47 @@
+# Atuin configuration
+# https://docs.atuin.sh/configuration/config/
+
+## Where to store the database
+db_path = "~/.local/share/atuin/history.db"
+
+## Where to store the encryption key
+key_path = "~/.local/share/atuin/key"
+
+## Where to store the session token
+session_path = "~/.local/share/atuin/session"
+
+## Date format used, see https://docs.rs/chrono/latest/chrono/format/strftime/
+dialect = "us"
+
+## Default search filter mode
+## - "global": Search entire history
+## - "host": Search history from current host
+## - "session": Search history from current session
+## - "directory": Search history from current directory
+filter_mode = "directory"
+
+## Which filter mode to use when searching
+search_mode = "fuzzy"
+
+## Style of search results
+## - "compact": Compact style
+## - "full": Full style with more info
+style = "compact"
+
+## Show previews of selected items
+show_preview = true
+
+## Maximum number of lines to show in preview
+max_preview_height = 4
+
+## Show help message in search
+show_help = true
+
+## Exit on empty prompt (press enter with no input)
+exit_on_no_input = false
+
+## Auto sync
+auto_sync = true
+
+## Update check
+update_check = true

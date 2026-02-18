@@ -1,0 +1,41 @@
+# Chezmoi configuration file
+# This file contains user prompts and machine-specific settings
+# https://www.chezmoi.io/reference/configuration-file/
+
+[data]
+  # User preferences - prompted during first run
+  default_shell = "{{ promptStringOnce "default_shell" "Choose default shell (fish/zsh/bash)" "fish" }}"
+  install_tools = {{ promptBoolOnce "install_tools" "Install modern CLI tools? (zoxide, eza, bat, fzf, direnv, atuin)" true }}
+  work_machine = {{ promptBoolOnce "work_machine" "Is this a work machine?" false }}
+  
+  # Machine information
+  os = "{{ .chezmoi.os }}"
+  arch = "{{ .chezmoi.arch }}"
+  hostname = "{{ .chezmoi.hostname }}"
+  
+  # OS detection helpers
+  is_mac = {{ eq .chezmoi.os "darwin" }}
+  is_linux = {{ eq .chezmoi.os "linux" }}
+  is_windows = {{ eq .chezmoi.os "windows" }}
+  
+  # Architecture detection
+  is_arm64 = {{ eq .chezmoi.arch "arm64" }}
+  is_amd64 = {{ eq .chezmoi.arch "amd64" }}
+
+[diff]
+  command = "delta"
+  args = ["--side-by-side", "--line-numbers"]
+
+[merge]
+  command = "vimdiff"
+
+[edit]
+  command = "code"
+  args = ["--wait"]
+
+[cd]
+  command = "code"
+
+[git]
+  autoCommit = false
+  autoPush = false
