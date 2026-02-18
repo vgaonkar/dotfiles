@@ -19,6 +19,50 @@ Before running the installation, ensure your system meets these basic requiremen
 - PowerShell 7 (highly recommended)
 - Windows Terminal
 
+
+### GitHub Authentication (SSH)
+
+GitHub no longer supports password authentication for Git operations. You must use SSH or a Personal Access Token.
+
+#### Setting up SSH (Recommended)
+
+1. **Check for existing SSH keys:**
+   ```bash
+   ls -la ~/.ssh/
+   ```
+
+2. **Generate a new SSH key (if needed):**
+   ```bash
+   ssh-keygen -t ed25519 -C "your.email@example.com"
+   ```
+
+3. **Add to SSH agent:**
+   ```bash
+   eval "$(ssh-agent -s)"
+   ssh-add ~/.ssh/id_ed25519
+   ```
+
+4. **Copy your public key:**
+   ```bash
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+5. **Add to GitHub:**
+   - Go to: https://github.com/settings/keys
+   - Click "New SSH key"
+   - Paste your key and save
+
+6. **Install dotfiles via SSH:**
+   ```bash
+   sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply git@github.com:vgaonkar/dotfiles.git
+   ```
+
+#### Alternative: Personal Access Token
+
+If you prefer not to use SSH:
+1. Create a token at: https://github.com/settings/tokens
+2. Use the token as your password when prompted
+
 ## Step-by-Step Installation
 
 ### 1. Initialize Chezmoi

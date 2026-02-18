@@ -12,6 +12,13 @@ Open your terminal and run the command for your platform.
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply vgaonkar
 ```
 
+**Note:** GitHub requires SSH authentication or a Personal Access Token. If you get an authentication error, see the [SSH Setup Guide](02-installation.md#github-authentication-ssh) first.
+
+Alternative using SSH (recommended):
+```bash
+sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply git@github.com:vgaonkar/dotfiles.git
+```
+
 ### Windows (PowerShell)
 
 ```powershell
