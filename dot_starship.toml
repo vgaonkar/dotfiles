@@ -106,13 +106,13 @@ format = "[$symbol$branch]($style)"
 [git_status]
 style = "bg:orange fg:black"
 format = "([$all_status$ahead_behind]($style))"
-conflicted = "🏳"
+conflicted = "󰅙"
 ahead = "⇡${count}"
 behind = "⇣${count}"
 diverged = "⇕"
 up_to_date = "✓"
 untracked = "?${count}"
-stashed = "📦"
+stashed = "󰏗"
 modified = "!${count}"
 staged = "+${count}"
 renamed = "»"
@@ -181,11 +181,11 @@ format = "[󰥔 $time]($style)"
 
 # Battery - Black background
 [battery]
-full_symbol = "🔋 "
-charging_symbol = "⚡ "
-discharging_symbol = "🔌 "
-unknown_symbol = "❓ "
-empty_symbol = "🪫 "
+full_symbol = "󰁹 "
+charging_symbol = "󰂄 "
+discharging_symbol = "󰁻 "
+unknown_symbol = "󰂑 "
+empty_symbol = "󰂎 "
 format = "[$symbol$percentage]($style)"
 disabled = false
 

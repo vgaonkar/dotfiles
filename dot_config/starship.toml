@@ -1,42 +1,225 @@
-# Starship configuration
+# Tokyo Night Powerline Starship Configuration
+# Powerlevel10k-style with angled arrows and background colors
 # https://starship.rs/config/
 
+add_newline = false
+
+# Powerline format with background colors and angled separators
 format = """
-$username$hostname$directory$git_branch$git_status$cmd_duration$line_break$character"""
+[](bg:storm fg:blue)\
+$os\
+$username\
+[](bg:dark_gray fg:storm)\
+$directory\
+[](bg:orange fg:dark_gray)\
+$git_branch\
+$git_status\
+[](bg:storm fg:orange)\
+$fill\
+[](bg:storm fg:dark_gray)\
+$nodejs\
+$python\
+$golang\
+$rust\
+$java\
+$ruby\
+[](bg:dark_gray fg:storm)\
+$cmd_duration\
+$time\
+[](bg:black fg:dark_gray)\
+$battery\
+$line_break\
+$character"""
 
-[character]
-success_symbol = "[❯](green)"
-error_symbol = "[❯](red)"
-vimcmd_symbol = "[❮](green)"
+# Tokyo Night Color Palette with Powerline backgrounds
+palette = "tokyo_night_powerline"
 
-[directory]
-truncation_length = 3
-truncate_to_repo = true
+[palettes.tokyo_night_powerline]
+# Foreground colors
+red = "#f7768e"
+orange = "#ff9e64"
+yellow = "#e0af68"
+green = "#9ece6a"
+cyan = "#73daca"
+blue = "#7aa2f7"
+purple = "#bb9af7"
+white = "#c0caf5"
+light_gray = "#a9b1d6"
+gray = "#565f89"
+# Background colors for powerline
+black = "#1a1b26"
+storm = "#24283b"
+dark_gray = "#414868"
 
-[git_branch]
-symbol = ""
+# OS Icon - Blue background
+[os]
+disabled = false
+style = "bg:storm fg:blue bold"
+format = "[$symbol ]($style)"
 
-[git_status]
-ahead = "⇡${count}"
-behind = "⇣${count}"
-diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+[os.symbols]
+Ubuntu = "󰕈"
+Linux = "󰌽"
+Debian = "󰣚"
+Macos = "󰀵"
+Windows = "󰍲"
+Arch = "󰣇"
 
-[cmd_duration]
-min_time = 500
-format = "took [$duration](bold yellow)"
-
+# Username - Blue background, transitions to dark_gray
 [username]
-show_always = false
+show_always = true
+style_user = "bg:storm fg:white"
+style_root = "bg:storm fg:red bold"
+format = "[$user]($style)"
 
+# Hostname - SSH only
 [hostname]
 ssh_only = true
-format = "[$hostname](bold blue) "
+style = "bg:storm fg:purple"
+format = "[@$hostname]($style)"
 
-[battery]
-full_symbol = ""
-charging_symbol = ""
-discharging_symbol = ""
-display = [{ threshold = 20, style = "bold red" }]
+# Directory - Dark gray background, transitions to orange
+[directory]
+style = "bg:dark_gray fg:white bold"
+format = "[$path]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+read_only = " 󰌾"
+read_only_style = "bg:dark_gray fg:red"
 
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Projects" = "󰲋 "
+"Desktop" = " "
+".config" = "󰒓 "
+
+# Git Branch - Orange background
+[git_branch]
+symbol = " "
+style = "bg:orange fg:black bold"
+format = "[$symbol$branch]($style)"
+
+# Git Status - Orange background
+[git_status]
+style = "bg:orange fg:black"
+format = "([$all_status$ahead_behind]($style))"
+conflicted = "󰅙"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕"
+up_to_date = "✓"
+untracked = "?${count}"
+stashed = "󰏗"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»"
+deleted = "✘"
+
+# Git Metrics - Orange background
+[git_metrics]
+disabled = false
+added_style = "bg:orange fg:green bold"
+deleted_style = "bg:orange fg:red bold"
+format = "([+$added]($added_style)[-$deleted]($deleted_style))"
+
+# Fill - Storm background (separator area)
+[fill]
+symbol = " "
+
+# Node.js - Dark gray background, transitions left
+[nodejs]
+symbol = " "
+style = "bg:dark_gray fg:green bold"
+format = "[$symbol$version]($style)"
+disabled = false
+
+[python]
+symbol = " "
+style = "bg:dark_gray fg:yellow bold"
+format = "[$symbol$version]($style)"
+disabled = false
+
+[golang]
+symbol = " "
+style = "bg:dark_gray fg:cyan bold"
+format = "[$symbol$version]($style)"
+disabled = false
+
+[rust]
+symbol = " "
+style = "bg:dark_gray fg:orange bold"
+format = "[$symbol$version]($style)"
+disabled = false
+
+[java]
+symbol = " "
+style = "bg:dark_gray fg:red bold"
+format = "[$symbol$version]($style)"
+disabled = false
+
+[ruby]
+symbol = " "
+style = "bg:dark_gray fg:red bold"
+format = "[$symbol$version]($style)"
+disabled = false
+
+# Command Duration - Storm background
+[cmd_duration]
+min_time = 2000
+style = "bg:storm fg:yellow bold"
+format = "[⏱ $duration]($style)"
+
+# Time - Storm background
 [time]
-disabled = true
+disabled = false
+time_format = "%H:%M"
+style = "bg:storm fg:gray"
+format = "[󰥔 $time]($style)"
+
+# Battery - Black background
+[battery]
+full_symbol = "󰁹 "
+charging_symbol = "󰂄 "
+discharging_symbol = "󰁻 "
+unknown_symbol = "󰂑 "
+empty_symbol = "󰂎 "
+format = "[$symbol$percentage]($style)"
+disabled = false
+
+[[battery.display]]
+threshold = 20
+style = "bg:black fg:red bold"
+
+[[battery.display]]
+threshold = 50
+style = "bg:black fg:yellow"
+
+[[battery.display]]
+threshold = 100
+style = "bg:black fg:green"
+
+# Prompt Character - No background
+[character]
+success_symbol = "[❯](fg:green bold)"
+error_symbol = "[❯](fg:red bold)"
+vimcmd_symbol = "[❮](fg:purple bold)"
+
+# Status
+[status]
+style = "bg:red fg:white bold"
+symbol = "✖ "
+success_symbol = ""
+signal_symbol = "🛑 "
+format = "[$symbol$status]($style) "
+disabled = false
+map_symbol = true
+
+# Sudo
+[sudo]
+disabled = false
+symbol = "🔒 "
+style = "bg:red fg:white bold"
+format = "[$symbol]($style)"
