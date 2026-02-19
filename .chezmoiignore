@@ -81,5 +81,4 @@ __pycache__/
 # Logs
 *.log
 
-# Secrets (handled separately)
-.chezmoidata/secrets.yml
+# Secrets data is not managed as a dotfile; it is gitignored in .chezmoidata/

@@ -1,6 +1,6 @@
 [user]
-	name = {{ if stat ".chezmoidata/secrets.yml" }}{{ .secrets.git.user_name | quote }}{{ else }}"Your Name"{{ end }}
-	email = {{ if stat ".chezmoidata/secrets.yml" }}{{ .secrets.git.user_email | quote }}{{ else }}"your.email@example.com"{{ end }}
+	name = {{ with .git.user_name }}{{ . | quote }}{{ else }}{{ .chezmoi.username | quote }}{{ end }}
+	email = {{ with .git.user_email }}{{ . | quote }}{{ else }}{{ (printf "%s@example.com" .chezmoi.username) | quote }}{{ end }}
 
 [core]
 	editor = code --wait

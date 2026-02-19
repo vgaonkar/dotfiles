@@ -4,3 +4,5 @@
 # No secrets file found - creating template
 # Copy .chezmoidata/secrets.yml.example to secrets.yml and fill in your values
 {{ end -}}
+
+secrets.yml
