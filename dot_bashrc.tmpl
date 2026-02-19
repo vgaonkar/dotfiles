@@ -8,6 +8,9 @@ if [ -f /etc/bashrc ]; then
     . /etc/bashrc
 fi
 
+# Ensure user-local bins are available in interactive shells
+export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
+
 # History settings
 HISTCONTROL=ignoreboth
 HISTSIZE=10000
