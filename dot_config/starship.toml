@@ -2,7 +2,7 @@
 # Adapted to avoid deprecated/emoji glyphs that can render as boxes.
 
 # Insert a blank line between shell prompts
-add_newline = true
+add_newline = false
 
 # Increase the default command timeout to 2 seconds
 command_timeout = 2000
@@ -11,22 +11,7 @@ command_timeout = 2000
 palette = "catppuccin_macchiato"
 
 # Define the order and format of the information in our prompt
-format = """\
-[](fg:#3B76F0)\
-$directory\
-${custom.directory_separator_not_git}\
-${custom.directory_separator_git}\
-$git_branch\
-[](fg:#FCF392)\
-$git_commit\
-$git_status\
-$git_metrics\
-$git_state\
-$fill\
-$cmd_duration\
-$nodejs\
-${custom.git_config_email}\
-$character"""
+format = "[](fg:#3B76F0)$directory${custom.directory_separator_not_git}${custom.directory_separator_git}$git_branch$git_commit$git_status$git_metrics$git_state${custom.git_end_separator}$fill$cmd_duration$nodejs${custom.git_config_email}$character"
 
 # Fill character (empty space) between the left and right prompt
 [fill]
@@ -77,7 +62,7 @@ style = "white"
 [custom.git_config_email]
 description = "Output the current git user's configured email address."
 command = "git config user.email"
-format = "\n[$symbol(  $output)]($style)"
+format = " [ $output]($style)"
 when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
 style = "text"
 
@@ -86,6 +71,12 @@ style = "text"
 description = "Output a styled separator right after the directory when inside a git repository."
 command = ""
 format = "[](fg:#3B76F0 bg:#FCF392)"
+when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
+
+[custom.git_end_separator]
+description = "Output a styled separator after the git segment when inside a git repository."
+command = ""
+format = "[](fg:#FCF392)"
 when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
 
 # Output a styled separator right after the directory when NOT inside a git repository.
