@@ -1,66 +1,187 @@
-# Minimal Developer-Focused Starship Configuration
+# Tokyo Night Starship Configuration
+# Detailed, single-line with all icons
+# https://starship.rs/config/
+
 add_newline = false
 
-# Show directory, git, languages, then prompt
-format = "$directory$git_branch$nodejs$python$golang$rust$java$ruby$character"
+# Single line with everything
+format = "$os$username$hostname$directory$git_branch$git_status$git_metrics$nodejs$python$golang$rust$java$ruby$php$cmd_duration$time$battery$character"
 
-# Catppuccin colors
-palette = "catppuccin_mocha"
+# Tokyo Night Color Palette
+palette = "tokyo_night"
 
-[palettes.catppuccin_mocha]
-mauve = "#cba6f7"
-blue = "#89b4fa"
-green = "#a6e3a1"
-yellow = "#f9e2af"
-teal = "#94e2d5"
-peach = "#fab387"
-red = "#f38ba8"
+[palettes.tokyo_night]
+red = "#f7768e"
+orange = "#ff9e64"
+yellow = "#e0af68"
+green = "#9ece6a"
+cyan = "#73daca"
+blue = "#7aa2f7"
+purple = "#bb9af7"
+magenta = "#ff007c"
+white = "#c0caf5"
+light_gray = "#a9b1d6"
+gray = "#565f89"
+dark_gray = "#414868"
+black = "#1a1b26"
+storm = "#24283b"
+
+[os]
+disabled = false
+style = "fg:blue bold"
+format = "[$symbol ]($style)"
+
+[os.symbols]
+Ubuntu = "󰕈"
+Linux = "󰌽"
+Debian = "󰣚"
+Macos = "󰀵"
+Windows = "󰍲"
+Arch = "󰣇"
+
+[username]
+show_always = false
+style_user = "fg:purple"
+style_root = "fg:red bold"
+format = "[$user]($style)@"
+
+[hostname]
+ssh_only = true
+style = "fg:purple"
+format = "[$hostname]($style) "
 
 [directory]
-truncation_length = 1
-style = "fg:blue"
+style = "fg:cyan bold"
+format = "[$path]($style) "
+truncation_length = 3
+truncation_symbol = "…/"
+read_only = " 󰌾"
+read_only_style = "fg:red"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Projects" = "󰲋 "
+"Desktop" = " "
+".config" = "󰒓 "
 
 [git_branch]
-style = "fg:mauve"
-format = "[$branch]($style) "
+symbol = " "
+style = "fg:orange bold"
+format = "[on $symbol$branch]($style) "
 
-# Language modules - minimal icons
-[nodejs]
+[git_status]
+style = "fg:orange"
+format = "([$all_status$ahead_behind]($style) )"
+conflicted = "🏳 "
+ahead = "⇡${count} "
+behind = "⇣${count} "
+diverged = "⇕⇡${ahead_count}⇣${behind_count} "
+up_to_date = "✓ "
+untracked = "?${count} "
+stashed = "📦${count} "
+modified = "!${count} "
+staged = "+${count} "
+renamed = "»${count} "
+deleted = "✘${count} "
+
+[git_metrics]
 disabled = false
-symbol = ""
+added_style = "fg:green"
+deleted_style = "fg:red"
+format = "([+$added]($added_style) [-$deleted]($deleted_style) )"
+
+[nodejs]
+symbol = " "
 style = "fg:green"
-format = "[($version)]($style) "
+format = "[via $symbol($version)]($style) "
+disabled = false
 
 [python]
-disabled = false
-symbol = ""
+symbol = " "
 style = "fg:yellow"
-format = "[($version)]($style) "
+format = "[via $symbol($version)]($style) "
+disabled = false
 
 [golang]
+symbol = " "
+style = "fg:cyan"
+format = "[via $symbol($version)]($style) "
 disabled = false
-symbol = ""
-style = "fg:teal"
-format = "[($version)]($style) "
 
 [rust]
+symbol = " "
+style = "fg:orange"
+format = "[via $symbol($version)]($style) "
 disabled = false
-symbol = ""
-style = "fg:peach"
-format = "[($version)]($style) "
 
 [java]
-disabled = false
-symbol = ""
+symbol = " "
 style = "fg:red"
-format = "[($version)]($style) "
+format = "[via $symbol($version)]($style) "
+disabled = false
 
 [ruby]
-disabled = false
-symbol = ""
+symbol = " "
 style = "fg:red"
-format = "[($version)]($style) "
+format = "[via $symbol($version)]($style) "
+disabled = false
+
+[php]
+symbol = " "
+style = "fg:purple"
+format = "[via $symbol($version)]($style) "
+disabled = false
+
+[cmd_duration]
+min_time = 2000
+style = "fg:gray italic"
+format = "[took $duration]($style) "
+show_notifications = false
+
+[time]
+disabled = false
+time_format = "%H:%M"
+style = "fg:gray"
+format = "[at $time]($style) "
+
+[battery]
+full_symbol = "🔋 "
+charging_symbol = "⚡ "
+discharging_symbol = "🔌 "
+unknown_symbol = "❓ "
+empty_symbol = "🪫 "
+format = "[$symbol$percentage]($style) "
+disabled = false
+
+[[battery.display]]
+threshold = 20
+style = "fg:red bold"
+
+[[battery.display]]
+threshold = 50
+style = "fg:yellow"
+
+[[battery.display]]
+threshold = 100
+style = "fg:green"
 
 [character]
-success_symbol = "[❯](mauve)"
-error_symbol = "[❯](red)"
+success_symbol = "[❯](fg:green bold)"
+error_symbol = "[❯](fg:red bold)"
+vimcmd_symbol = "[❮](fg:purple bold)"
+
+[fill]
+symbol = " "
+
+[status]
+style = "fg:red bold"
+symbol = "✖ "
+success_symbol = ""
+signal_symbol = "🛑 "
+format = "[$symbol$status]($style) "
+disabled = false
+map_symbol = true
+pipestatus = true
