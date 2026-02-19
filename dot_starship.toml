@@ -1,215 +1,66 @@
-# Starship configuration with Catppuccin Mocha theme
-# https://starship.rs/config/
-
-# Disable the blank line at the start of the prompt
+# Minimal Developer-Focused Starship Configuration
 add_newline = false
 
-# Use Catppuccin Mocha palette
+# Show directory, git, languages, then prompt
+format = "$directory$git_branch$nodejs$python$golang$rust$java$ruby$character"
+
+# Catppuccin colors
 palette = "catppuccin_mocha"
 
-# Prompt format with powerline style
-format = """
-[](surface0)\
-$os\
-$username\
-[](surface0:surface1)\
-$directory\
-[](surface1:surface2)\
-$git_branch\
-$git_status\
-[](surface2:surface0)\
-$fill\
-[](surface0:surface1)\
-$cmd_duration\
-$line_break\
-$character"""
-
-# Right prompt with contextual info
-right_format = """
-$kubernetes\
-$docker_context\
-$package\
-$nodejs\
-$python\
-$golang\
-$rust\
-$java\
-$ruby\
-$battery"""
-
 [palettes.catppuccin_mocha]
-rosewater = "#f5e0dc"
-flamingo = "#f2cdcd"
-pink = "#f5c2e7"
 mauve = "#cba6f7"
-red = "#f38ba8"
-maroon = "#eba0ac"
-peach = "#fab387"
-yellow = "#f9e2af"
-green = "#a6e3a1"
-teal = "#94e2d5"
-sky = "#89dceb"
 blue = "#89b4fa"
-lavender = "#b4befe"
-text = "#cdd6f4"
-subtext1 = "#bac2de"
-subtext0 = "#a6adc8"
-overlay2 = "#9399b2"
-overlay1 = "#7f849c"
-overlay0 = "#6c7086"
-surface2 = "#585b70"
-surface1 = "#45475a"
-surface0 = "#313244"
-base = "#1e1e2e"
-mantle = "#181825"
-crust = "#11111b"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+teal = "#94e2d5"
+peach = "#fab387"
+red = "#f38ba8"
+
+[directory]
+truncation_length = 1
+style = "fg:blue"
+
+[git_branch]
+style = "fg:mauve"
+format = "[$branch]($style) "
+
+# Language modules - minimal icons
+[nodejs]
+disabled = false
+symbol = ""
+style = "fg:green"
+format = "[($version)]($style) "
+
+[python]
+disabled = false
+symbol = ""
+style = "fg:yellow"
+format = "[($version)]($style) "
+
+[golang]
+disabled = false
+symbol = ""
+style = "fg:teal"
+format = "[($version)]($style) "
+
+[rust]
+disabled = false
+symbol = ""
+style = "fg:peach"
+format = "[($version)]($style) "
+
+[java]
+disabled = false
+symbol = ""
+style = "fg:red"
+format = "[($version)]($style) "
+
+[ruby]
+disabled = false
+symbol = ""
+style = "fg:red"
+format = "[($version)]($style) "
 
 [character]
 success_symbol = "[❯](mauve)"
 error_symbol = "[❯](red)"
-vimcmd_symbol = "[❮](green)"
-
-[os]
-disabled = false
-style = "bg:surface0 fg:text"
-format = "[$symbol ]($style)"
-
-[os.symbols]
-Ubuntu = "󰕈"
-Linux = "󰌽"
-
-[username]
-show_always = true
-style_user = "bg:surface0 fg:text"
-style_root = "bg:surface0 fg:red"
-format = "[$user]($style)"
-disabled = false
-
-[directory]
-style = "bg:surface1 fg:blue"
-format = "[ $path ]($style)"
-truncation_length = 3
-truncation_symbol = "…/"
-
-[directory.substitutions]
-"Documents" = "󰈙 "
-"Downloads" = " "
-"Music" = "󰝚 "
-"Pictures" = " "
-"Projects" = "󰲋 "
-
-[git_branch]
-symbol = ""
-style = "bg:surface2 fg:mauve"
-format = "[ $symbol $branch ]($style)"
-
-[git_status]
-style = "bg:surface2 fg:text"
-format = "[($all_status$ahead_behind )]($style)"
-conflicted = "🏳"
-ahead = "🏎"
-behind = "😰"
-diverged = "😵"
-up_to_date = "✓"
-untracked = "🤷"
-stashed = "📦"
-modified = "📝"
-staged = '[++\($count\)](green)'
-renamed = "👅"
-deleted = "🗑"
-
-[git_metrics]
-disabled = false
-added_style = "bg:surface2 fg:green"
-deleted_style = "bg:surface2 fg:red"
-format = '[+$added]($added_style)/[-$deleted]($deleted_style) '
-
-[fill]
-symbol = " "
-
-[cmd_duration]
-min_time = 500
-format = "[ 󱫐 $duration ]($style)"
-style = "bg:surface1 fg:yellow"
-disabled = false
-
-[battery]
-full_symbol = "🔋"
-charging_symbol = "⚡"
-discharging_symbol = "💀"
-format = "[ $symbol $percentage ]($style)"
-disabled = false
-
-[[battery.display]]
-threshold = 10
-style = "bg:surface1 fg:red"
-
-[[battery.display]]
-threshold = 30
-style = "bg:surface1 fg:peach"
-
-[[battery.display]]
-threshold = 100
-style = "bg:surface1 fg:green"
-
-[kubernetes]
-symbol = "☸"
-format = "[$symbol $context( ($namespace))]($style) "
-style = "bg:surface1 fg:blue"
-disabled = false
-
-[docker_context]
-symbol = ""
-format = "[ $symbol $context ]($style)"
-style = "bg:surface1 fg:blue"
-disabled = false
-
-[nodejs]
-symbol = ""
-style = "bg:surface1 fg:green"
-format = "[ $symbol ($version) ]($style)"
-disabled = false
-
-[python]
-symbol = ""
-style = "bg:surface1 fg:yellow"
-format = "[ $symbol ($version) ]($style)"
-disabled = false
-
-[golang]
-symbol = ""
-style = "bg:surface1 fg:teal"
-format = "[ $symbol ($version) ]($style)"
-disabled = false
-
-[rust]
-symbol = ""
-style = "bg:surface1 fg:peach"
-format = "[ $symbol ($version) ]($style)"
-disabled = false
-
-[java]
-symbol = ""
-style = "bg:surface1 fg:red"
-format = "[ $symbol ($version) ]($style)"
-disabled = false
-
-[ruby]
-symbol = ""
-style = "bg:surface1 fg:red"
-format = "[ $symbol ($version) ]($style)"
-disabled = false
-
-[package]
-symbol = "󰏗"
-style = "bg:surface1 fg:peach"
-format = "[ $symbol $version ]($style)"
-disabled = false
-
-[status]
-style = "bg:surface1 fg:red"
-symbol = "✖"
-success_symbol = "✓"
-signal_symbol = "🛑"
-format = "[ $symbol $common_meaning$signal_name$maybe_int ]($style)"
-disabled = false
