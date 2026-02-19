@@ -3,10 +3,24 @@
 # https://www.chezmoi.io/reference/configuration-file/
 
 [data]
-  # User preferences - prompted during first run
-  default_shell = "{{ promptStringOnce "default_shell" "Choose default shell (fish/zsh/bash)" "fish" }}"
+  # User preferences - use env vars in CI/non-interactive, prompt interactively
+  {{- if eq (env "CHEZMOI_DEFAULT_SHELL") "" }}
+  default_shell = "{{ promptStringOnce "default_shell" "Choose default shell (fish/zsh/bash)" "bash" }}"
+  {{- else }}
+  default_shell = "{{ env "CHEZMOI_DEFAULT_SHELL" }}"
+  {{- end }}
+
+  {{- if eq (env "CHEZMOI_INSTALL_TOOLS") "" }}
   install_tools = {{ promptBoolOnce "install_tools" "Install modern CLI tools? (zoxide, eza, bat, fzf, direnv, atuin)" true }}
+  {{- else }}
+  install_tools = {{ env "CHEZMOI_INSTALL_TOOLS" }}
+  {{- end }}
+
+  {{- if eq (env "CHEZMOI_WORK_MACHINE") "" }}
   work_machine = {{ promptBoolOnce "work_machine" "Is this a work machine?" false }}
+  {{- else }}
+  work_machine = {{ env "CHEZMOI_WORK_MACHINE" }}
+  {{- end }}
   
   # Machine information
   os = "{{ .chezmoi.os }}"
