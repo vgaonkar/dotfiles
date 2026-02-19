@@ -5,44 +5,34 @@ Welcome to the documentation for my dotfiles. This guide helps you set up, custo
 ## Documentation Index
 
 1. [Quick Start](01-quick-start.md)
-   Get up and running in under 5 minutes with a single command.
-   *Reading time: 2 mins*
+   Get up and running in 5 minutes.
 
-2. [Installation Guide](02-installation.md)
-   Detailed instructions, prerequisites, and platform-specific notes.
-   *Reading time: 5 mins*
+2. [Installation](02-installation.md)
+   Detailed platform-specific setup.
 
-3. [Configuration Overview](03-configuration.md)
-   How these dotfiles are structured and managed with Chezmoi.
-   *Reading time: 4 mins*
+3. [Configuration](03-configuration.md)
+   How Chezmoi templates and data drive this repo.
 
-4. [Shell Customization](04-shell.md)
-   Zsh, Oh My Zsh, aliases, and custom functions.
-   *Reading time: 6 mins*
+4. [Customization](04-customization.md)
+   Personalize your setup.
 
-5. [Editor Setup](05-editors.md)
-   Configurations for Neovim, VS Code, and other text editors.
-   *Reading time: 5 mins*
+5. [Tools & Plugins](tools/README.md)
+   Practical learning docs for the CLI tools wired into this environment.
 
-6. [Terminal & Multiplexers](06-terminal.md)
-   Alacritty, iTerm2, and Tmux settings.
-   *Reading time: 4 mins*
+6. [Troubleshooting](05-troubleshooting.md)
+   Common issues and fixes.
 
-7. [Platform Specifics](07-platforms.md)
-   Deep dive into macOS defaults, Linux desktop, and Windows/WSL2 tweaks.
-   *Reading time: 5 mins*
+7. [Secrets Management](06-secrets-management.md)
+   Handling sensitive data.
 
-8. [Automation & Scripts](08-automation.md)
-   Utility scripts for system maintenance and workflow optimization.
-   *Reading time: 3 mins*
+8. [Platform Specific](07-platform-specific.md)
+   macOS/Linux/Windows quirks.
 
-9. [Customization Guide](09-customization.md)
-   How to add your own private tweaks or override defaults.
-   *Reading time: 4 mins*
+9. [Migration Guide](08-migration-guide.md)
+   Moving from other tools.
 
-10. [Troubleshooting](10-troubleshooting.md)
-    Common issues, FAQ, and how to reset your environment.
-    *Reading time: 5 mins*
+10. [Development](09-development.md)
+    Contributing and maintenance.
 
 ## Quick Links
 
