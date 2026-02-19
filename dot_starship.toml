@@ -19,8 +19,9 @@ ${custom.directory_separator_git}\
 $git_branch\
 ${custom.git_end_separator}\
 $git_commit$git_status$git_metrics$git_state\
-$fill$cmd_duration$nodejs\
-${custom.git_config_email}\n$character"""
+\n$character"""
+
+right_format = "$cmd_duration$nodejs${custom.git_config_email}"
 
 # Fill character (empty space) between the left and right prompt
 [fill]
@@ -56,6 +57,7 @@ added_style = "green"
 deleted_style = "red"
 
 [nodejs]
+symbol = " "
 format = "via [$symbol$version]($style) "
 style = "text"
 
@@ -72,7 +74,7 @@ style = "fg:gray"
 [custom.git_config_email]
 description = "Output the current git user's configured email address."
 command = "git config user.email"
-format = "\n[ $output]($style)"
+format = "[ $output]($style) "
 when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
 style = "text"
 
