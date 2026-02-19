@@ -1,225 +1,125 @@
-# Tokyo Night Powerline Starship Configuration
-# Powerlevel10k-style with angled arrows and background colors
-# https://starship.rs/config/
+# Starship prompt based on adamdehaven.com snippet
+# Adapted to avoid deprecated/emoji glyphs that can render as boxes.
 
-add_newline = false
+# Insert a blank line between shell prompts
+add_newline = true
 
-# Powerline format with background colors and angled separators
-format = """
-[](bg:storm fg:blue)\
-$os\
-$username\
-[](bg:dark_gray fg:storm)\
+# Increase the default command timeout to 2 seconds
+command_timeout = 2000
+
+# Theme (place BEFORE the palettes table)
+palette = "catppuccin_macchiato"
+
+# Define the order and format of the information in our prompt
+format = """\
+[](fg:#3B76F0)\
 $directory\
-[](bg:orange fg:dark_gray)\
+${custom.directory_separator_not_git}\
+${custom.directory_separator_git}\
 $git_branch\
+[](fg:#FCF392)\
+$git_commit\
 $git_status\
-[](bg:storm fg:orange)\
+$git_metrics\
+$git_state\
 $fill\
-[](bg:storm fg:dark_gray)\
-$nodejs\
-$python\
-$golang\
-$rust\
-$java\
-$ruby\
-[](bg:dark_gray fg:storm)\
 $cmd_duration\
-$time\
-[](bg:black fg:dark_gray)\
-$battery\
-$line_break\
+$nodejs\
+${custom.git_config_email}\
 $character"""
 
-# Tokyo Night Color Palette with Powerline backgrounds
-palette = "tokyo_night_powerline"
-
-[palettes.tokyo_night_powerline]
-# Foreground colors
-red = "#f7768e"
-orange = "#ff9e64"
-yellow = "#e0af68"
-green = "#9ece6a"
-cyan = "#73daca"
-blue = "#7aa2f7"
-purple = "#bb9af7"
-white = "#c0caf5"
-light_gray = "#a9b1d6"
-gray = "#565f89"
-# Background colors for powerline
-black = "#1a1b26"
-storm = "#24283b"
-dark_gray = "#414868"
-
-# OS Icon - Blue background
-[os]
-disabled = false
-style = "bg:storm fg:blue bold"
-format = "[$symbol ]($style)"
-
-[os.symbols]
-Ubuntu = "󰕈"
-Linux = "󰌽"
-Debian = "󰣚"
-Macos = "󰀵"
-Windows = "󰍲"
-Arch = "󰣇"
-
-# Username - Blue background, transitions to dark_gray
-[username]
-show_always = true
-style_user = "bg:storm fg:white"
-style_root = "bg:storm fg:red bold"
-format = "[$user]($style)"
-
-# Hostname - SSH only
-[hostname]
-ssh_only = true
-style = "bg:storm fg:purple"
-format = "[@$hostname]($style)"
-
-# Directory - Dark gray background, transitions to orange
-[directory]
-style = "bg:dark_gray fg:white bold"
-format = "[$path]($style)"
-truncation_length = 3
-truncation_symbol = "…/"
-read_only = " 󰌾"
-read_only_style = "bg:dark_gray fg:red"
-
-[directory.substitutions]
-"Documents" = "󰈙 "
-"Downloads" = " "
-"Music" = "󰝚 "
-"Pictures" = " "
-"Projects" = "󰲋 "
-"Desktop" = " "
-".config" = "󰒓 "
-
-# Git Branch - Orange background
-[git_branch]
-symbol = " "
-style = "bg:orange fg:black bold"
-format = "[$symbol$branch]($style)"
-
-# Git Status - Orange background
-[git_status]
-style = "bg:orange fg:black"
-format = "([$all_status$ahead_behind]($style))"
-conflicted = "󰅙"
-ahead = "⇡${count}"
-behind = "⇣${count}"
-diverged = "⇕"
-up_to_date = "✓"
-untracked = "?${count}"
-stashed = "󰏗"
-modified = "!${count}"
-staged = "+${count}"
-renamed = "»"
-deleted = "✘"
-
-# Git Metrics - Orange background
-[git_metrics]
-disabled = false
-added_style = "bg:orange fg:green bold"
-deleted_style = "bg:orange fg:red bold"
-format = "([+$added]($added_style)[-$deleted]($deleted_style))"
-
-# Fill - Storm background (separator area)
+# Fill character (empty space) between the left and right prompt
 [fill]
 symbol = " "
 
-# Node.js - Dark gray background, transitions left
+# Disable the line break between the first and second prompt lines
+[line_break]
+disabled = true
+
+# Customize the format of the working directory
+[directory]
+truncate_to_repo = true
+format = "[󰉋 $path ]($style)"
+style = "fg:text bg:#3B76F0"
+
+[git_branch]
+symbol = " "
+format = "[ $symbol$branch(:$remote_branch) ]($style)"
+style = "fg:#1C3A5E bg:#FCF392"
+
+[git_status]
+format = '([$all_status$ahead_behind]($style))'
+style = "fg:#1C3A5E bg:#FCF392"
+
+[git_commit]
+format = '[\($hash\)]($style) '
+style = "fg:#1C3A5E bg:#FCF392"
+
+[git_metrics]
+disabled = false
+# keep default colors; background stays from surrounding segment
+format = "[+$added](green)/[-$deleted](red) "
+
 [nodejs]
-symbol = " "
-style = "bg:dark_gray fg:green bold"
-format = "[$symbol$version]($style)"
-disabled = false
+format = "via [$symbol($version )]($style)"
+style = "yellow"
 
-[python]
-symbol = " "
-style = "bg:dark_gray fg:yellow bold"
-format = "[$symbol$version]($style)"
-disabled = false
+[package]
+disabled = true
 
-[golang]
-symbol = " "
-style = "bg:dark_gray fg:cyan bold"
-format = "[$symbol$version]($style)"
-disabled = false
-
-[rust]
-symbol = " "
-style = "bg:dark_gray fg:orange bold"
-format = "[$symbol$version]($style)"
-disabled = false
-
-[java]
-symbol = " "
-style = "bg:dark_gray fg:red bold"
-format = "[$symbol$version]($style)"
-disabled = false
-
-[ruby]
-symbol = " "
-style = "bg:dark_gray fg:red bold"
-format = "[$symbol$version]($style)"
-disabled = false
-
-# Command Duration - Storm background
+# Output the command duration if over 2 seconds
 [cmd_duration]
-min_time = 2000
-style = "bg:storm fg:yellow bold"
-format = "[⏱ $duration]($style)"
+min_time = 2_000
+format = "[ 󱫐 $duration ]($style)"
+style = "white"
 
-# Time - Storm background
-[time]
-disabled = false
-time_format = "%H:%M"
-style = "bg:storm fg:gray"
-format = "[󰥔 $time]($style)"
+# Output the current git config email address
+[custom.git_config_email]
+description = "Output the current git user's configured email address."
+command = "git config user.email"
+format = "\n[$symbol(  $output)]($style)"
+when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
+style = "text"
 
-# Battery - Black background
-[battery]
-full_symbol = "󰁹 "
-charging_symbol = "󰂄 "
-discharging_symbol = "󰁻 "
-unknown_symbol = "󰂑 "
-empty_symbol = "󰂎 "
-format = "[$symbol$percentage]($style)"
-disabled = false
+# Output a styled separator right after the directory when inside a git repository.
+[custom.directory_separator_git]
+description = "Output a styled separator right after the directory when inside a git repository."
+command = ""
+format = "[](fg:#3B76F0 bg:#FCF392)"
+when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
 
-[[battery.display]]
-threshold = 20
-style = "bg:black fg:red bold"
+# Output a styled separator right after the directory when NOT inside a git repository.
+[custom.directory_separator_not_git]
+description = "Output a styled separator right after the directory when NOT inside a git repository."
+command = ""
+format = "[](fg:#3B76F0)"
+when = "! git rev-parse --is-inside-work-tree > /dev/null 2>&1"
 
-[[battery.display]]
-threshold = 50
-style = "bg:black fg:yellow"
-
-[[battery.display]]
-threshold = 100
-style = "bg:black fg:green"
-
-# Prompt Character - No background
-[character]
-success_symbol = "[❯](fg:green bold)"
-error_symbol = "[❯](fg:red bold)"
-vimcmd_symbol = "[❮](fg:purple bold)"
-
-# Status
-[status]
-style = "bg:red fg:white bold"
-symbol = "✖ "
-success_symbol = ""
-signal_symbol = "🛑 "
-format = "[$symbol$status]($style) "
-disabled = false
-map_symbol = true
-
-# Sudo
-[sudo]
-disabled = false
-symbol = "🔒 "
-style = "bg:red fg:white bold"
-format = "[$symbol]($style)"
+# Catppuccin Macchiato color palette
+[palettes.catppuccin_macchiato]
+rosewater = "#f4dbd6"
+flamingo = "#f0c6c6"
+pink = "#f5bde6"
+mauve = "#c6a0f6"
+red = "#ed8796"
+maroon = "#ee99a0"
+peach = "#f5a97f"
+yellow = "#eed49f"
+green = "#a6da95"
+teal = "#8bd5ca"
+sky = "#91d7e3"
+sapphire = "#7dc4e4"
+blue = "#8aadf4"
+lavender = "#b7bdf8"
+text = "#cad3f5"
+subtext1 = "#b8c0e0"
+subtext0 = "#a5adcb"
+overlay2 = "#939ab7"
+overlay1 = "#8087a2"
+overlay0 = "#6e738d"
+surface2 = "#5b6078"
+surface1 = "#494d64"
+surface0 = "#363a4f"
+base = "#24273a"
+mantle = "#1e2030"
+crust = "#181926"
