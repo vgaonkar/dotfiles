@@ -2,7 +2,7 @@
 # Adapted to avoid deprecated/emoji glyphs that can render as boxes.
 
 # Insert a blank line between shell prompts
-add_newline = false
+add_newline = true
 
 # Increase the default command timeout to 2 seconds
 command_timeout = 2000
@@ -11,7 +11,16 @@ command_timeout = 2000
 palette = "catppuccin_macchiato"
 
 # Define the order and format of the information in our prompt
-format = "[](fg:#3B76F0)$directory${custom.directory_separator_not_git}${custom.directory_separator_git}$git_branch$git_commit$git_status$git_metrics$git_state${custom.git_end_separator}$fill$cmd_duration$nodejs${custom.git_config_email}$character"
+format = """\
+[](fg:#3B76F0)\
+$directory\
+${custom.directory_separator_not_git}\
+${custom.directory_separator_git}\
+$git_branch\
+${custom.git_end_separator}\
+$git_commit$git_status$git_metrics$git_state\
+$fill$cmd_duration$nodejs\
+${custom.git_config_email}\n$character"""
 
 # Fill character (empty space) between the left and right prompt
 [fill]
@@ -29,12 +38,12 @@ style = "fg:text bg:#3B76F0"
 
 [git_branch]
 symbol = " "
-format = "[ $symbol$branch(:$remote_branch) ]($style)"
+format = "[ $symbol$branch ]($style)"
 style = "fg:#1C3A5E bg:#FCF392"
 
 [git_status]
-format = '([$all_status$ahead_behind]($style))'
-style = "fg:#1C3A5E bg:#FCF392"
+format = "[\\[$all_status$ahead_behind\\]]($style) "
+style = "red"
 
 [git_commit]
 format = '[\($hash\)]($style) '
@@ -42,12 +51,13 @@ style = "fg:#1C3A5E bg:#FCF392"
 
 [git_metrics]
 disabled = false
-# keep default colors; background stays from surrounding segment
-format = "[+$added](green)/[-$deleted](red) "
+format = "[+$added]($added_style) [-$deleted]($deleted_style) "
+added_style = "green"
+deleted_style = "red"
 
 [nodejs]
-format = "via [$symbol($version )]($style)"
-style = "yellow"
+format = "via [$symbol$version]($style) "
+style = "text"
 
 [package]
 disabled = true
@@ -55,16 +65,20 @@ disabled = true
 # Output the command duration if over 2 seconds
 [cmd_duration]
 min_time = 2_000
-format = "[ 󱫐 $duration ]($style)"
-style = "white"
+format = "[󰥔 $duration]($style) "
+style = "fg:gray"
 
 # Output the current git config email address
 [custom.git_config_email]
 description = "Output the current git user's configured email address."
 command = "git config user.email"
-format = " [ $output]($style)"
+format = "\n[ $output]($style)"
 when = "git rev-parse --is-inside-work-tree >/dev/null 2>&1"
 style = "text"
+
+[character]
+success_symbol = "[❯](green) "
+error_symbol = "[❯](red) "
 
 # Output a styled separator right after the directory when inside a git repository.
 [custom.directory_separator_git]
