@@ -4,10 +4,25 @@
     Dotfiles installer for Windows
 .DESCRIPTION
     Installs chezmoi and applies dotfiles on Windows systems
+
+.PARAMETER BrowserLogin
+    Run the browser-login bootstrap flow (HTTPS + gh auth) by invoking scripts/bootstrap/install.ps1.
+    This will exit with the bootstrap script's exit code.
+
+.EXAMPLE
+    .\scripts\install.ps1
+
+.EXAMPLE
+    .\scripts\install.ps1 -BrowserLogin
+
+.EXAMPLE
+    .\scripts\install.ps1 --browser-login
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [switch]$BrowserLogin
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -17,6 +32,30 @@ $ChezmoiUrl = "https://get.chezmoi.io"
 
 Write-Host "🏠 Dotfiles Installer for Windows" -ForegroundColor Blue
 Write-Host ""
+
+# Parity with Unix installer flag style
+if ($args -contains "--browser-login") {
+    $BrowserLogin = $true
+}
+
+if ($BrowserLogin) {
+    Write-Host "🔐 Browser-login bootstrap selected; handing off to scripts/bootstrap/install.ps1" -ForegroundColor Yellow
+    $bootstrapPath = Join-Path $PSScriptRoot "bootstrap\install.ps1"
+
+    if (-not (Test-Path -Path $bootstrapPath)) {
+        Write-Host "❌ Bootstrap script not found: $bootstrapPath" -ForegroundColor Red
+        exit 1
+    }
+
+    try {
+        & $bootstrapPath
+        exit $LASTEXITCODE
+    } catch {
+        Write-Host "❌ Bootstrap failed" -ForegroundColor Red
+        Write-Host $_.Exception.Message
+        exit 1
+    }
+}
 
 # Check if running as Administrator
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")

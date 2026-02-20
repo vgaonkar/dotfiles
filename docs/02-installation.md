@@ -20,9 +20,25 @@ Before running the installation, ensure your system meets these basic requiremen
 - Windows Terminal
 
 
-### GitHub Authentication (SSH)
+### GitHub Authentication (SSH & Browser)
 
-GitHub no longer supports password authentication for Git operations. You must use SSH or a Personal Access Token.
+GitHub no longer supports password authentication for Git operations. You must use SSH, a browser-based login via the GitHub CLI, or a Personal Access Token.
+
+#### No SSH / Browser Login (Private Repo)
+
+This is the easiest method for private repositories when SSH is not yet configured. It uses `gh auth login --web` with the `repo` scope and configures git via `gh auth setup-git`.
+
+**macOS / Linux:**
+```bash
+curl -fsLS https://gist.githubusercontent.com/vgaonkar/072d89db4a77cd02d542191f89ad1e19/raw/65b6aa3e35400aea2e3fbca59803a6816974c0cb/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://gist.githubusercontent.com/vgaonkar/072d89db4a77cd02d542191f89ad1e19/raw/65b6aa3e35400aea2e3fbca59803a6816974c0cb/install.ps1 | iex
+```
+
+*Note: These URLs are pinned to a specific gist revision SHA and should be updated when the gist changes.*
 
 #### Setting up SSH (Recommended)
 

@@ -43,6 +43,16 @@ test_command "bat" "Bat"
 test_command "fzf" "FZF"
 test_command "direnv" "Direnv"
 test_command "atuin" "Atuin"
+test_command "gh" "GitHub CLI"
+
+# Check GitHub CLI auth status
+if command -v gh &> /dev/null; then
+    if gh auth status --hostname github.com &> /dev/null; then
+        echo -e "${GREEN}✓${NC} GitHub Auth: Authenticated"
+    else
+        echo -e "${YELLOW}!${NC} GitHub Auth: Not authenticated (run 'gh auth login')"
+    fi
+fi
 
 echo ""
 echo -e "${BLUE}Checking shells:${NC}"

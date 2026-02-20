@@ -17,6 +17,33 @@ NC='\033[0m' # No Color
 GITHUB_USER="vgaonkar"
 DOTFILES_REPO="https://github.com/${GITHUB_USER}/dotfiles.git"
 
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+BROWSER_LOGIN=false
+for arg in "$@"; do
+    case "$arg" in
+        --browser-login)
+            BROWSER_LOGIN=true
+            ;;
+        -h|--help)
+            echo "Usage: $(basename -- "${BASH_SOURCE[0]}") [--browser-login]"
+            echo ""
+            echo "  --browser-login   Use GitHub CLI web login (HTTPS) bootstrap"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Error:${NC} Unknown argument: $arg" >&2
+            echo "Run with --help for usage" >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ "$BROWSER_LOGIN" = true ]; then
+    echo -e "${YELLOW}Using browser-login (HTTPS) bootstrap...${NC}"
+    exec bash "$SCRIPT_DIR/bootstrap/install.sh"
+fi
+
 echo -e "${BLUE}🏠 Dotfiles Installer${NC}"
 echo ""
 

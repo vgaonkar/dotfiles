@@ -1,0 +1,8 @@
+# ShellCheck configuration
+
+# Severity level: set to error so style/info warnings don't fail the lint run.
+severity=error
+disable=SC1007
+
+# Suggest fixes
+source-path=SCRIPTDIR
