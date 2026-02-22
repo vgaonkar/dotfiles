@@ -7,7 +7,7 @@ If you encounter problems during installation or usage, check these common solut
 If you get a `command not found: chezmoi` error after installation:
 
 1. **Check PATH**: Ensure `~/.local/bin` (Linux/macOS) or `~/bin` is in your `$PATH`.
-2. **Reload Shell**: Run `source ~/.zshrc` or restart your terminal.
+2. **Reload Shell**: Run `source ~/.config/fish/config.fish` or restart your terminal. If you use Zsh/Bash instead, run `source ~/.zshrc` or `source ~/.bashrc`.
 3. **Reinstall**: If it's still missing, try running the bootstrap script again.
 
 ## Permission Denied Errors
@@ -18,10 +18,10 @@ Usually occurs when scripts try to write to directories owned by root.
 
 ## Shell Not Changing
 
-If you installed Zsh but your terminal still opens Bash:
+If you selected Fish but your terminal still opens Bash/Zsh:
 
 1. **Check Default Shell**: Run `echo $SHELL`.
-2. **Manual Change**: Run `chsh -s $(which zsh)`.
+2. **Manual Change**: Run `chsh -s $(which fish)`.
 3. **Restart**: You must log out and back in for the default shell change to take effect.
 
 ## Tools Not in PATH
@@ -29,7 +29,8 @@ If you installed Zsh but your terminal still opens Bash:
 If tools like `zoxide` or `fzf` aren't working:
 
 - **Verify Installation**: Check if the tool exists in your bin directory.
-- **Check `.zshrc`**: Ensure the shell configuration is correctly sourcing the tool's init script. Look for lines like `eval "$(zoxide init zsh)"`.
+- **Check Fish config first**: Ensure `~/.config/fish/config.fish` is loading correctly (for example `zoxide init fish | source`).
+- **If using Zsh/Bash**: Ensure the shell config is sourcing the tool's init script (for example `eval "$(zoxide init zsh)"`).
 
 ## Template Errors
 

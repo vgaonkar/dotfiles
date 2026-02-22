@@ -10,6 +10,41 @@ macOS requires a few extra steps for the best experience.
 
 Homebrew is the primary package manager. Ensure it's installed and the binary is in your PATH. On Apple Silicon, this is usually `/opt/homebrew/bin/brew`.
 
+During `chezmoi init --apply`/`chezmoi apply`, the default bootstrap:
+- installs `fish` with Homebrew,
+- sets Fish as the default login shell (unless overridden),
+- then installs this formula set via Fish:
+
+- `starship`
+- `zoxide`
+- `eza`
+- `bat`
+- `fzf`
+- `direnv`
+- `atuin`
+- `fd`
+- `git`
+- `gh`
+- `jq`
+- `poppler` (`pdfinfo`, `pdftotext`)
+- `ripgrep`
+- `qpdf`
+- `tesseract`
+- `ocrmypdf`
+- `pandoc`
+- `git-delta`
+- `procs`
+- `bottom` (`btm`)
+- `dust`
+- `gping`
+
+It also installs Fish plugins:
+
+- `jorgebucaran/fisher`
+- `PatrickF1/fzf.fish`
+- `jethrokuan/z`
+- `nickeb96/puffer-fish`
+
 ### Xcode Command Line Tools
 
 Many tools depend on these. Install them by running:
@@ -24,15 +59,17 @@ Note that macOS uses `/Users/` while Linux uses `/home/`. Use the `{{ .chezmoi.h
 
 ## Linux Setup
 
-The configuration detects your distribution to install the correct packages.
+Linux uses Linuxbrew/Homebrew for the default tool bootstrap (same shell/tool flow as macOS): fish first, then the formula set.
 
-*   **Debian/Ubuntu:** Uses `apt`
-*   **Arch Linux:** Uses `pacman`
-*   **Fedora:** Uses `dnf`
+### Linuxbrew
 
-### Package Managers
+Install Linuxbrew/Homebrew:
 
-If you use a non-standard distribution, you might need to manually install dependencies listed in the setup scripts.
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+If you use a non-standard distribution, install Linuxbrew manually and ensure `brew` is on your `PATH`.
 
 ## Windows / WSL2
 

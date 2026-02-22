@@ -36,6 +36,7 @@ test_command() {
 
 echo -e "${BLUE}Checking tools:${NC}"
 test_command "chezmoi" "Chezmoi"
+test_command "fish" "Fish"
 test_command "starship" "Starship"
 test_command "zoxide" "Zoxide"
 test_command "eza" "Eza"
@@ -43,6 +44,20 @@ test_command "bat" "Bat"
 test_command "fzf" "FZF"
 test_command "direnv" "Direnv"
 test_command "atuin" "Atuin"
+test_command "fd" "fd"
+test_command "rg" "ripgrep"
+test_command "delta" "delta"
+test_command "procs" "procs"
+test_command "btm" "bottom"
+test_command "dust" "dust"
+test_command "gping" "gping"
+test_command "pdfinfo" "poppler(pdfinfo)"
+test_command "pdftotext" "poppler(pdftotext)"
+test_command "qpdf" "qpdf"
+test_command "tesseract" "tesseract"
+test_command "ocrmypdf" "ocrmypdf"
+test_command "pandoc" "pandoc"
+test_command "jq" "jq"
 test_command "gh" "GitHub CLI"
 
 # Check GitHub CLI auth status
@@ -68,6 +83,7 @@ MANAGED_FILES=(
     "$HOME/.bashrc"
     "$HOME/.zshrc"
     "$HOME/.config/fish/config.fish"
+    "$HOME/.config/fish/fish_plugins"
     "$HOME/.config/starship.toml"
 )
 

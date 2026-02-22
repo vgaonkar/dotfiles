@@ -5,13 +5,13 @@
 [data]
   # User preferences - use env vars in CI/non-interactive, prompt interactively
   {{- if eq (env "CHEZMOI_DEFAULT_SHELL") "" }}
-  default_shell = "{{ promptStringOnce "default_shell" "Choose default shell (fish/zsh/bash)" "bash" }}"
+  default_shell = "{{ promptStringOnce "default_shell" "Choose default shell (fish/zsh/bash)" "fish" }}"
   {{- else }}
   default_shell = "{{ env "CHEZMOI_DEFAULT_SHELL" }}"
   {{- end }}
 
   {{- if eq (env "CHEZMOI_INSTALL_TOOLS") "" }}
-  install_tools = {{ promptBoolOnce "install_tools" "Install modern CLI tools? (zoxide, eza, bat, fzf, direnv, atuin)" true }}
+  install_tools = {{ promptBoolOnce "install_tools" "Install default brew/Fish tooling? (starship, zoxide, eza, bat, fzf, direnv, atuin, fd, ripgrep, git, gh, jq, poppler, qpdf, tesseract, ocrmypdf, pandoc, delta, procs, btm, dust, gping + fish plugins)" true }}
   {{- else }}
   install_tools = {{ env "CHEZMOI_INSTALL_TOOLS" }}
   {{- end }}

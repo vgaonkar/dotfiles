@@ -31,7 +31,9 @@ irm get.chezmoi.io | iex; chezmoi init --apply vgaonkar
 That's it! The installer will:
 - ✅ Detect your OS and architecture
 - ✅ Prompt you for preferences (default shell, work/personal mode)
-- ✅ Install all necessary tools
+- ✅ Install Fish and set it as the default shell (unless you override `CHEZMOI_DEFAULT_SHELL`)
+- ✅ Install default brew/Linuxbrew tools via Fish (`starship`, `zoxide`, `eza`, `bat`, `fzf`, `direnv`, `atuin`, `fd`, `ripgrep`, `git`, `gh`, `jq`, `poppler`, `qpdf`, `tesseract`, `ocrmypdf`, `pandoc`, `git-delta`, `procs`, `bottom`, `dust`, `gping`)
+- ✅ Install Fish plugins (`fisher`, `fzf.fish`, `z`, `puffer-fish`)
 - ✅ Configure your shells
 - ✅ Set everything up automatically
 
@@ -126,7 +128,7 @@ chezmoi git commit -m "Add myconfig"
 chezmoi git push
 
 # Edit a managed file
-chezmoi edit ~/.zshrc
+chezmoi edit ~/.config/fish/config.fish
 
 # See what would change
 chezmoi diff
@@ -147,7 +149,7 @@ sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply vgaonkar
 # You'll be prompted for:
 # - Default shell (fish/zsh/bash)
 # - Work or personal machine
-# - Whether to install optional tools
+# - Whether to install the default brew/Linuxbrew tool + Fish plugin set
 ```
 
 ---

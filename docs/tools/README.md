@@ -4,7 +4,7 @@ This directory documents the CLI tools and shell enhancements used in this dotfi
 
 Notes on terms used here:
 - "Wired" means the dotfiles initialize the tool in shell startup files / configs.
-- "Optional" means the dotfiles do not install/enable it by default, but it is commonly paired with this setup.
+- "Additional ecosystem tools" means related tools that are documented for reference.
 
 ## Recommended Learning Order
 
@@ -38,14 +38,17 @@ Tool configs are implemented in:
 - [delta](delta.md) (upstream: https://github.com/dandavison/delta)
 - [chezmoi](chezmoi.md) (upstream: https://chezmoi.io/)
 
-### Optional Add-ons (Not Wired By Default)
+### Fish Add-ons Installed By Default
 
-These are commonly used with the above tools. If you add aliases/abbreviations for them, document it alongside.
-
+These are installed during default bootstrap:
 - Fish plugin manager: [fisher](fisher.md) (upstream: https://github.com/jorgebucaran/fisher)
 - Fish fzf bindings: [fzf.fish](fzf-fish.md) (upstream: https://github.com/PatrickF1/fzf.fish)
 - Fish directory jumping: [z](z-fish.md) (upstream: https://github.com/jethrokuan/z)
 - Fish text expansion: [puffer-fish](puffer-fish.md) (upstream: https://github.com/nickeb96/puffer-fish)
+
+### Additional Ecosystem Tools (Docs Reference)
+
+These are commonly used with the above tools.
 
 - [fd](fd.md) (upstream: https://github.com/sharkdp/fd)
 - [rg (ripgrep)](ripgrep.md) (upstream: https://github.com/BurntSushi/ripgrep)

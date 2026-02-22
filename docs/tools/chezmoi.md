@@ -17,7 +17,7 @@ chezmoi init --apply vgaonkar
 chezmoi status
 chezmoi diff
 chezmoi apply
-chezmoi edit ~/.zshrc
+chezmoi edit ~/.config/fish/config.fish
 chezmoi add ~/.myconfig
 chezmoi update
 ```

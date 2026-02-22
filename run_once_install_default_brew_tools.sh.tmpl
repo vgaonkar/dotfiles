@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+log() {
+  printf '[chezmoi-tools] %s\n' "$*"
+}
+
+warn() {
+  printf '[chezmoi-tools] WARN: %s\n' "$*" >&2
+}
+
+is_false() {
+  case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+    false|0|no|n) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+tty_present() {
+  [ -t 0 ] && [ -t 1 ]
+}
+
+case '{{ .chezmoi.os }}' in
+  darwin|linux) ;;
+  *)
+    log "Skipping default brew tool installation on unsupported OS: {{ .chezmoi.os }}."
+    exit 0
+    ;;
+esac
+
+brew_bin=""
+if command -v brew >/dev/null 2>&1; then
+  brew_bin="$(command -v brew)"
+elif [ -x /opt/homebrew/bin/brew ]; then
+  brew_bin=/opt/homebrew/bin/brew
+elif [ -x /usr/local/bin/brew ]; then
+  brew_bin=/usr/local/bin/brew
+elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  brew_bin=/home/linuxbrew/.linuxbrew/bin/brew
+fi
+
+if [ -z "$brew_bin" ]; then
+  log "Homebrew/Linuxbrew is required but was not found."
+  log "Install from https://brew.sh, then re-run: chezmoi apply"
+  exit 1
+fi
+
+eval "$("$brew_bin" shellenv)"
+
+if "$brew_bin" list --formula --versions fish >/dev/null 2>&1; then
+  log "Already installed: fish"
+else
+  log "Installing fish via Homebrew/Linuxbrew"
+  "$brew_bin" install fish
+fi
+
+fish_bin="$("$brew_bin" --prefix)/bin/fish"
+if [ ! -x "$fish_bin" ] && command -v fish >/dev/null 2>&1; then
+  fish_bin="$(command -v fish)"
+fi
+
+if [ '{{ .default_shell }}' = 'fish' ] && [ -x "$fish_bin" ]; then
+  if [ "${SHELL:-}" = "$fish_bin" ]; then
+    log "Login shell already set to fish: $fish_bin"
+  elif ! tty_present; then
+    warn "Non-interactive session detected; skipping automatic shell change."
+    warn "Set Fish as default shell manually: chsh -s $fish_bin"
+  else
+    if [ -r /etc/shells ] && ! grep -Fxq "$fish_bin" /etc/shells; then
+      if command -v sudo >/dev/null 2>&1; then
+        printf '%s\n' "$fish_bin" | sudo tee -a /etc/shells >/dev/null
+      else
+        warn "sudo not available; could not add $fish_bin to /etc/shells automatically."
+      fi
+    fi
+
+    if command -v chsh >/dev/null 2>&1; then
+      if chsh -s "$fish_bin"; then
+        log "Set login shell to fish: $fish_bin"
+      else
+        warn "Failed to set fish as default shell. Run manually: chsh -s $fish_bin"
+      fi
+    else
+      warn "chsh not available; set default shell manually: chsh -s $fish_bin"
+    fi
+  fi
+fi
+
+if is_false '{{ .install_tools }}'; then
+  log "Skipping default brew tool installation and Fish plugin setup (install_tools=false)."
+  exit 0
+fi
+
+if [ ! -x "$fish_bin" ]; then
+  log "fish binary is required but was not found after installation."
+  exit 1
+fi
+
+DOTFILES_BREW_BIN="$brew_bin" "$fish_bin" -c '
+set -l brew "$DOTFILES_BREW_BIN"
+eval ($brew shellenv)
+set -l pkgs starship zoxide eza bat fzf direnv atuin fd ripgrep git gh jq poppler qpdf tesseract ocrmypdf pandoc git-delta procs bottom dust gping
+set -l missing
+
+for pkg in $pkgs
+  if $brew list --formula --versions $pkg >/dev/null 2>&1
+    echo "[chezmoi-tools] Already installed: $pkg"
+  else
+    set missing $missing $pkg
+  end
+end
+
+if test (count $missing) -eq 0
+  echo "[chezmoi-tools] All default brew tools are already installed."
+else
+  echo "[chezmoi-tools] Installing missing tools via fish: $missing"
+  $brew install $missing
+end
+
+set -l fish_plugins jorgebucaran/fisher PatrickF1/fzf.fish jethrokuan/z nickeb96/puffer-fish
+if test -f ~/.config/fish/fish_plugins
+  set fish_plugins (string split "\n" (string trim (cat ~/.config/fish/fish_plugins)))
+  set fish_plugins (string match -r -v "^[[:space:]]*(#|$)" $fish_plugins)
+end
+
+if not type -q fisher
+  if type -q curl
+    echo "[chezmoi-tools] Installing fisher plugin manager"
+    curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+    fisher install jorgebucaran/fisher
+  else
+    echo "[chezmoi-tools] WARN: curl not found; skipping fisher installation."
+  end
+end
+
+if type -q fisher
+  echo "[chezmoi-tools] Installing/updating fish plugins: $fish_plugins"
+  fisher install $fish_plugins
+else
+  echo "[chezmoi-tools] WARN: fisher unavailable; skipping fish plugin installation."
+end
+'
+
+log "Default brew tool installation complete."

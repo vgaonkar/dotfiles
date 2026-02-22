@@ -11,8 +11,8 @@ Before running the installation, ensure your system meets these basic requiremen
 - Homebrew (recommended): `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
 ### Linux (Ubuntu/Debian)
-- Git: `sudo apt update && sudo apt install git`
 - Curl: `sudo apt install curl`
+- Linuxbrew/Homebrew (required for default tool setup): `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
 ### Windows
 - Git for Windows
@@ -102,6 +102,58 @@ Once you're satisfied with the diff, apply the changes:
 chezmoi apply
 ```
 
+By default, `chezmoi init --apply` and `chezmoi apply` on macOS/Linux do the following:
+
+1. Install `fish` via Homebrew/Linuxbrew
+2. Set Fish as the default login shell (when `CHEZMOI_DEFAULT_SHELL=fish`, which is the default)
+3. Install these tools via Homebrew/Linuxbrew from a Fish execution context:
+
+- `starship`
+- `zoxide`
+- `eza`
+- `bat`
+- `fzf`
+- `direnv`
+- `atuin`
+- `fd`
+- `ripgrep`
+- `git`
+- `gh`
+- `jq`
+- `poppler` (`pdfinfo`, `pdftotext`)
+- `qpdf`
+- `tesseract`
+- `ocrmypdf`
+- `pandoc`
+- `git-delta`
+- `procs`
+- `bottom` (`btm`)
+- `dust`
+- `gping`
+
+4. Install Fish plugins:
+
+- `jorgebucaran/fisher`
+- `PatrickF1/fzf.fish`
+- `jethrokuan/z`
+- `nickeb96/puffer-fish`
+
+Installation is idempotent: already-installed formulas are skipped.
+
+To choose a different default shell during install:
+
+```bash
+CHEZMOI_DEFAULT_SHELL=zsh chezmoi init --apply vgaonkar
+```
+
+To skip this default package install, run with:
+
+```bash
+CHEZMOI_INSTALL_TOOLS=false chezmoi apply
+```
+
+This only skips tool/plugin installation; Fish shell installation/default-shell behavior still follows `CHEZMOI_DEFAULT_SHELL`.
+
 ## Platform-Specific Notes
 
 ### WSL2
@@ -115,7 +167,7 @@ The installation will attempt to set various macOS defaults (like dock behavior 
 To ensure everything is working correctly, run these commands:
 
 - `chezmoi status`: Checks for any unapplied changes.
-- `zsh --version`: Confirms Zsh is installed.
+- `fish --version`: Confirms Fish is installed.
 - `alias`: Lists available aliases to ensure your profile loaded.
 
 ## Troubleshooting
