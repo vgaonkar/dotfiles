@@ -13,7 +13,9 @@ Wiring in this repo:
 - Fish: `home/dot_config/fish/config.fish.tmpl` initializes `starship init fish | source`
 
 Config in this repo:
-- `home/dot_config/starship.toml`
+- `home/dot_config/starship.toml` (Catppuccin Macchiato palette, custom separators, and the `$directory → $git_status` layout you see in your current prompt)
+  - `chezmoi` applies that template to `~/.config/starship.toml`, so every machine that runs the install inherits the same theme.
+  - Change the `palette` value in this file if you want a different built-in Starship palette.
 Applied path:
 - `~/.config/starship.toml`
 

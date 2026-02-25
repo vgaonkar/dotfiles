@@ -152,6 +152,10 @@ To skip this default package install, run with:
 CHEZMOI_INSTALL_TOOLS=false chezmoi apply
 ```
 
+The tool installation and Fish plugin wiring live inside `scripts/run_once_install_default_brew_tools.sh.tmpl`. That script runs from the Fish shell, installs the packages listed above (including `starship`, `zoxide`, `eza`, `fzf`, `direnv`, and `atuin`), and uses the hard-coded plugin list from `dot_config/fish/fish_plugins` (`jorgebucaran/fisher`, `PatrickF1/fzf.fish`, `jethrokuan/z`, `nickeb96/puffer-fish`) to keep every machine on the same set of Fish helpers.
+
+Fish itself boots the prompt/tool integrations by sourcing `dot_config/fish/config.fish.tmpl`, which runs `starship init fish | source` and reads `dot_config/fish/fish_plugins` so `chezmoi apply` wires your theme and plugins as part of the install.
+
 This only skips tool/plugin installation; Fish shell installation/default-shell behavior still follows `CHEZMOI_DEFAULT_SHELL`.
 
 ## Platform-Specific Notes
