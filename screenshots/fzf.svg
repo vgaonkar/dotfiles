@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500" viewBox="0 0 900 500">
+  <rect width="900" height="500" rx="8" fill="#24273a"/>
+  <!-- title bar -->
+  <rect width="900" height="32" rx="8" fill="#363a4f"/>
+  <rect x="0" y="16" width="900" height="16" fill="#363a4f"/>
+  <circle cx="16" cy="16" r="6" fill="#ed8796"/>
+  <circle cx="34" cy="16" r="6" fill="#eed49f"/>
+  <circle cx="52" cy="16" r="6" fill="#a6da95"/>
+  <text x="450" y="21" text-anchor="middle" font-family="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace" font-size="13" fill="#a5adcb">fzf - fuzzy finder</text>
+  <style>text { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace; font-size: 13px; }</style>
+  <text x="20" y="50" fill="#c6a0f6">❯ </text>
+  <text x="36.8" y="50" fill="#cad3f5">ls | fzf</text>
+  <text x="20" y="70" fill="#cad3f5">  </text>
+  <text x="36.8" y="70" fill="#eed49f">6/14</text>
+  <text x="70.4" y="70" fill="#494d64"> ──────────────────────────────────</text>
+  <text x="20" y="90" fill="#cad3f5">  </text>
+  <text x="36.8" y="90" fill="#cad3f5">Brewfile</text>
+  <text x="20" y="110" fill="#cad3f5">  </text>
+  <text x="36.8" y="110" fill="#cad3f5">Makefile</text>
+  <text x="20" y="130" fill="#cad3f5">  </text>
+  <text x="36.8" y="130" fill="#a6da95">bootstrap.sh</text>
+  <text x="20" y="150" fill="#cad3f5">  </text>
+  <text x="36.8" y="150" fill="#cad3f5">README.md</text>
+  <text x="20" y="170" fill="#cad3f5">  </text>
+  <text x="36.8" y="170" fill="#cad3f5">LICENSE</text>
+  <text x="20" y="190" fill="#c6a0f6">&gt; </text>
+  <text x="36.8" y="190" fill="#8bd5ca">.gitignore</text>
+
+  <text x="20" y="230" fill="#cad3f5">  </text>
+  <text x="36.8" y="230" fill="#c6a0f6">&gt; </text>
+  <text x="53.599999999999994" y="230" fill="#ed8796">git</text>
+  <text x="78.8" y="230" fill="#cad3f5">█</text>
+</svg>

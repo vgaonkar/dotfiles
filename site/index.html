@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dotfiles - A Portable Development Environment</title>
+<style>
+:root {
+  --base: #24273a;
+  --mantle: #1e2030;
+  --surface0: #363a4f;
+  --surface1: #494d64;
+  --text: #cad3f5;
+  --subtext: #a5adcb;
+  --blue: #8aadf4;
+  --green: #a6da95;
+  --yellow: #eed49f;
+  --red: #ed8796;
+  --mauve: #c6a0f6;
+  --teal: #8bd5ca;
+  --pink: #f5bde6;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--base);
+  color: var(--text);
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a { color: var(--blue); text-decoration: none; transition: color .2s; }
+a:hover { color: var(--mauve); }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(30,32,48,.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--surface0);
+}
+nav .container {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-logo { font-size: 1.1rem; font-weight: 700; }
+.nav-logo .prompt { color: var(--mauve); }
+.nav-logo .name { color: var(--blue); }
+.nav-links { display: flex; gap: 1.2rem; align-items: center; font-size: .85rem; }
+.nav-links a { color: var(--subtext); }
+.nav-links a:hover { color: var(--text); }
+
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 6rem 1.5rem 4rem;
+  position: relative;
+}
+.ascii-logo {
+  color: var(--blue);
+  font-size: clamp(.55rem, 1.8vw, 1rem);
+  line-height: 1.15;
+  white-space: pre;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 20px rgba(138,173,244,.3);
+}
+.hero-subtitle { color: var(--subtext); font-size: 1.1rem; margin-bottom: .5rem; }
+.hero-tagline { color: var(--text); font-size: 1.35rem; font-weight: 700; margin-bottom: 2rem; }
+.hero-tagline span { color: var(--green); }
+
+.install-box {
+  display: inline-block; background: var(--mantle);
+  border: 1px solid var(--surface0); border-radius: 8px;
+  padding: 1rem 1.5rem; position: relative;
+  text-align: left; max-width: 100%; overflow-x: auto;
+}
+.install-box .prompt-char { color: var(--green); }
+.install-box .cmd { color: var(--blue); }
+.install-box .cursor {
+  display: inline-block; width: 8px; height: 1.1em;
+  background: var(--text); vertical-align: text-bottom;
+  animation: blink 1s step-end infinite; margin-left: 2px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.copy-btn {
+  position: absolute; top: .6rem; right: .6rem;
+  background: var(--surface0); border: 1px solid var(--surface1);
+  color: var(--subtext); padding: .3rem .7rem; border-radius: 4px;
+  cursor: pointer; font-family: inherit; font-size: .75rem;
+  transition: all .2s;
+}
+.copy-btn:hover { background: var(--surface1); color: var(--text); }
+
+.platform-pills {
+  display: flex; gap: .6rem; justify-content: center;
+  margin-top: 1.5rem; flex-wrap: wrap;
+}
+.pill {
+  background: var(--surface0); color: var(--subtext);
+  padding: .3rem .8rem; border-radius: 999px; font-size: .8rem;
+  border: 1px solid var(--surface1);
+}
+
+/* SECTION COMMON */
+section { padding: 5rem 0; }
+.section-title {
+  font-size: 1.8rem; font-weight: 700; text-align: center;
+  margin-bottom: .5rem; color: var(--text);
+}
+.section-subtitle {
+  text-align: center; color: var(--subtext); margin-bottom: 3rem;
+  font-size: .95rem;
+}
+
+/* FEATURES GRID */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  background: var(--surface0); border-radius: 10px;
+  padding: 1.8rem; border: 1px solid transparent;
+  transition: all .3s;
+}
+.feature-card:hover {
+  border-color: var(--mauve);
+  box-shadow: 0 0 20px rgba(198,160,246,.15);
+  transform: translateY(-2px);
+}
+.feature-icon { font-size: 1.8rem; margin-bottom: .8rem; }
+.feature-card h3 { color: var(--text); margin-bottom: .5rem; font-size: 1.05rem; }
+.feature-card p { color: var(--subtext); font-size: .88rem; }
+
+/* TOOLS */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+.tool-card {
+  background: var(--surface0); border-radius: 10px;
+  padding: 1.5rem; border: 1px solid transparent;
+  transition: all .3s; display: flex; flex-direction: column;
+}
+.tool-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 0 16px rgba(139,213,202,.12);
+  transform: translateY(-2px);
+}
+.tool-card h3 { color: var(--blue); font-size: 1.05rem; margin-bottom: .4rem; }
+.replaces-badge {
+  display: inline-block; background: var(--surface1);
+  color: var(--subtext); font-size: .72rem;
+  padding: .15rem .5rem; border-radius: 4px; margin-bottom: .6rem;
+}
+.tool-card p { color: var(--subtext); font-size: .85rem; margin-bottom: .8rem; flex: 1; }
+.tool-card img {
+  width: 100%; border-radius: 6px;
+  border: 1px solid var(--surface1); margin-bottom: .6rem;
+}
+.tool-card .tool-link { font-size: .8rem; color: var(--teal); }
+
+/* TERMINAL ANIMATION */
+.terminal-section { padding: 5rem 0; }
+.terminal-window {
+  max-width: 720px; margin: 0 auto;
+  background: var(--mantle); border-radius: 10px;
+  border: 1px solid var(--surface0); overflow: hidden;
+  position: relative;
+}
+.terminal-titlebar {
+  display: flex; align-items: center; gap: 7px;
+  padding: .7rem 1rem; background: var(--surface0);
+}
+.terminal-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+.terminal-dot.red { background: var(--red); }
+.terminal-dot.yellow { background: var(--yellow); }
+.terminal-dot.green { background: var(--green); }
+.terminal-titlebar span {
+  flex: 1; text-align: center; color: var(--subtext);
+  font-size: .75rem;
+}
+.terminal-body {
+  padding: 1.2rem; min-height: 380px;
+  font-size: .82rem; line-height: 1.7;
+  position: relative;
+  overflow: hidden;
+}
+.terminal-body::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.03) 2px,
+    rgba(0,0,0,.03) 4px
+  );
+}
+.terminal-line { white-space: pre-wrap; opacity: 0; }
+.terminal-line.visible { opacity: 1; }
+.terminal-line .g { color: var(--green); }
+.terminal-line .b { color: var(--blue); }
+.terminal-line .y { color: var(--yellow); }
+.terminal-line .r { color: var(--red); }
+.terminal-line .m { color: var(--mauve); }
+
+/* PLATFORM TABLE */
+.platform-table-wrap { overflow-x: auto; }
+.platform-table {
+  width: 100%; max-width: 750px; margin: 0 auto;
+  border-collapse: collapse; font-size: .9rem;
+}
+.platform-table th {
+  text-align: left; padding: .8rem 1rem;
+  border-bottom: 2px solid var(--surface1);
+  color: var(--mauve); font-weight: 600;
+}
+.platform-table td {
+  padding: .7rem 1rem;
+  border-bottom: 1px solid var(--surface0);
+  color: var(--subtext);
+}
+.platform-table tr:hover td { background: rgba(54,58,79,.4); }
+
+/* DOCS GRID */
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.2rem;
+}
+.doc-card {
+  background: var(--surface0); border-radius: 8px;
+  padding: 1.3rem; display: flex; align-items: center; gap: .8rem;
+  border: 1px solid transparent; transition: all .3s;
+  text-decoration: none;
+}
+.doc-card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 0 14px rgba(138,173,244,.1);
+  transform: translateY(-2px);
+}
+.doc-icon { font-size: 1.4rem; }
+.doc-card span { color: var(--text); font-size: .92rem; }
+
+/* FOOTER */
+footer {
+  border-top: 1px solid var(--surface0);
+  padding: 2.5rem 0; text-align: center;
+  color: var(--subtext); font-size: .82rem;
+}
+footer .links { display: flex; gap: 1.5rem; justify-content: center; margin-bottom: 1rem; }
+footer p { margin-top: .5rem; }
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .nav-links { gap: .6rem; font-size: .75rem; }
+  .hero { padding: 4rem 1rem 2.5rem; }
+  .ascii-logo { font-size: .45rem; }
+  section { padding: 3rem 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-logo"><span class="prompt">&gt;_</span> <span class="name">dotfiles</span></div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#tools">Tools</a>
+      <a href="#demo">Demo</a>
+      <a href="#platforms">Platforms</a>
+      <a href="#docs">Docs</a>
+      <a href="https://github.com/vgaonkar/dotfiles" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+<pre class="ascii-logo" aria-hidden="true">
+ ____   ___ _____ _____ ___ _     _____ ____
+|  _ \ / _ \_   _|  ___|_ _| |   | ____/ ___|
+| | | | | | || | | |_   | || |   |  _| \___ \
+| |_| | |_| || | |  _|  | || |___| |___ ___) |
+|____/ \___/ |_| |_|   |___|_____|_____|____/
+</pre>
+  <p class="hero-subtitle">A portable, cross-shell development environment</p>
+  <p class="hero-tagline"><span>One command.</span> Any machine. Instantly productive.</p>
+
+  <div class="install-box">
+    <span class="prompt-char">$ </span><span class="cmd" id="install-cmd">sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply vgaonkar</span><span class="cursor"></span>
+    <button class="copy-btn" id="copy-btn" title="Copy to clipboard">Copy</button>
+  </div>
+
+  <div class="platform-pills">
+    <span class="pill">macOS</span>
+    <span class="pill">Linux</span>
+    <span class="pill">WSL2</span>
+    <span class="pill">Windows</span>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">Features</h2>
+    <p class="section-subtitle">Everything you need for a consistent, productive development environment</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">&#9889;</div><h3>One-Command Install</h3><p>Bootstrap a full dev environment in under 5 minutes</p></div>
+      <div class="feature-card"><div class="feature-icon">&#127758;</div><h3>Cross-Platform</h3><p>macOS, Linux, WSL2, Windows. Native support for all.</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128031;</div><h3>Fish Shell First</h3><p>Friendly Interactive Shell with smart completions and plugins</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128736;&#65039;</div><h3>Modern CLI Stack</h3><p>23 curated tools replacing outdated Unix standbys</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128274;</div><h3>Secrets Management</h3><p>Secure handling of API keys, tokens, and credentials</p></div>
+      <div class="feature-card"><div class="feature-icon">&#129514;</div><h3>Tested &amp; Verified</h3><p>Validated across macOS Apple Silicon, Intel, Ubuntu, Fedora, WSL2</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section id="tools">
+  <div class="container">
+    <h2 class="section-title">Modern CLI Stack</h2>
+    <p class="section-subtitle">Battle-tested tools that make your terminal feel like home</p>
+    <div class="tools-grid">
+      <div class="tool-card">
+        <h3>Starship</h3>
+        <span class="replaces-badge">Replaces: PS1, Powerlevel10k</span>
+        <p>Cross-shell prompt with git info</p>
+        <img src="../screenshots/starship.svg" alt="Starship screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/starship.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>Eza</h3>
+        <span class="replaces-badge">Replaces: ls</span>
+        <p>Modern file listing with icons and colors</p>
+        <img src="../screenshots/eza.svg" alt="Eza screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/eza.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>Bat</h3>
+        <span class="replaces-badge">Replaces: cat</span>
+        <p>Syntax-highlighted file viewer</p>
+        <img src="../screenshots/bat.svg" alt="Bat screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/bat.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>FZF</h3>
+        <span class="replaces-badge">Replaces: Ctrl+R</span>
+        <p>Fuzzy finder for files, history, and more</p>
+        <img src="../screenshots/fzf.svg" alt="FZF screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/fzf.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>Zoxide</h3>
+        <span class="replaces-badge">Replaces: cd, autojump</span>
+        <p>Smart directory jumping with frecency</p>
+        <img src="../screenshots/zoxide.svg" alt="Zoxide screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/fzf.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>Atuin</h3>
+        <span class="replaces-badge">Replaces: shell history</span>
+        <p>Encrypted shell history with search</p>
+        <img src="../screenshots/atuin.svg" alt="Atuin screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/atuin.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>Direnv</h3>
+        <span class="replaces-badge">Replaces: manual exports</span>
+        <p>Per-directory environment variables</p>
+        <a class="tool-link" href="../docs/tools/direnv.md" target="_blank">View docs &rarr;</a>
+      </div>
+      <div class="tool-card">
+        <h3>Delta</h3>
+        <span class="replaces-badge">Replaces: git diff</span>
+        <p>Beautiful syntax-highlighted git diffs</p>
+        <img src="../screenshots/delta.svg" alt="Delta screenshot" loading="lazy" onerror="this.style.display='none'">
+        <a class="tool-link" href="../docs/tools/delta.md" target="_blank">View docs &rarr;</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANIMATED TERMINAL -->
+<section id="demo" class="terminal-section">
+  <div class="container">
+    <h2 class="section-title">See it in action</h2>
+    <p class="section-subtitle">Watch a full install in seconds</p>
+    <div class="terminal-window">
+      <div class="terminal-titlebar">
+        <div class="terminal-dot red"></div>
+        <div class="terminal-dot yellow"></div>
+        <div class="terminal-dot green"></div>
+        <span>fish &mdash; dotfiles install</span>
+      </div>
+      <div class="terminal-body" id="terminal-body"></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM SUPPORT -->
+<section id="platforms">
+  <div class="container">
+    <h2 class="section-title">Platform Support</h2>
+    <p class="section-subtitle">Tested and working across every major platform</p>
+    <div class="platform-table-wrap">
+      <table class="platform-table">
+        <thead><tr><th>Platform</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>macOS (Apple Silicon)</td><td style="color:var(--green)">&#10004; Full</td><td>M1/M2/M3/M4</td></tr>
+          <tr><td>macOS (Intel)</td><td style="color:var(--green)">&#10004; Full</td><td>Older Macs</td></tr>
+          <tr><td>Ubuntu / Debian</td><td style="color:var(--green)">&#10004; Full</td><td>APT + Homebrew</td></tr>
+          <tr><td>Fedora / RHEL</td><td style="color:var(--green)">&#10004; Full</td><td>DNF + Homebrew</td></tr>
+          <tr><td>Arch Linux</td><td style="color:var(--green)">&#10004; Full</td><td>Pacman + Homebrew</td></tr>
+          <tr><td>Windows WSL2</td><td style="color:var(--green)">&#10004; Full</td><td>Ubuntu in WSL2</td></tr>
+          <tr><td>Windows Native</td><td style="color:var(--yellow)">&#9888;&#65039; Partial</td><td>PowerShell + Scoop</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- DOCS -->
+<section id="docs">
+  <div class="container">
+    <h2 class="section-title">Documentation</h2>
+    <p class="section-subtitle">Everything you need to get started and customize</p>
+    <div class="docs-grid">
+      <a class="doc-card" href="../docs/01-quick-start.md" target="_blank"><span class="doc-icon">&#128214;</span><span>Quick Start</span></a>
+      <a class="doc-card" href="../docs/02-installation.md" target="_blank"><span class="doc-icon">&#128187;</span><span>Installation</span></a>
+      <a class="doc-card" href="../docs/03-configuration.md" target="_blank"><span class="doc-icon">&#9881;&#65039;</span><span>Configuration</span></a>
+      <a class="doc-card" href="../docs/04-customization.md" target="_blank"><span class="doc-icon">&#127912;</span><span>Customization</span></a>
+      <a class="doc-card" href="../docs/06-secrets-management.md" target="_blank"><span class="doc-icon">&#128272;</span><span>Secrets</span></a>
+      <a class="doc-card" href="../docs/05-troubleshooting.md" target="_blank"><span class="doc-icon">&#128027;</span><span>Troubleshooting</span></a>
+      <a class="doc-card" href="../docs/07-platform-specific.md" target="_blank"><span class="doc-icon">&#127822;</span><span>Platform Guide</span></a>
+      <a class="doc-card" href="../docs/08-migration-guide.md" target="_blank"><span class="doc-icon">&#128260;</span><span>Migration</span></a>
+      <a class="doc-card" href="../docs/09-development.md" target="_blank"><span class="doc-icon">&#128104;&#8205;&#128187;</span><span>Development</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="https://github.com/vgaonkar/dotfiles" target="_blank" rel="noopener">GitHub</a>
+      <a href="#top">Back to top</a>
+    </div>
+    <p>MIT License</p>
+    <p>Made with &#10084;&#65039; for consistent development environments everywhere</p>
+  </div>
+</footer>
+
+<script>
+/* Copy button */
+document.getElementById('copy-btn').addEventListener('click', function() {
+  var cmd = 'sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply vgaonkar';
+  var btn = this;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cmd).then(function() {
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = cmd; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); btn.textContent = 'Copied!'; }
+    catch(e) { btn.textContent = 'Failed'; }
+    document.body.removeChild(ta);
+    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+  }
+});
+
+/* Terminal animation */
+var terminalLines = [
+  {t: '<span class="g">$</span> <span class="b">sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply vgaonkar</span>'},
+  {t: ''},
+  {t: '<span class="y">&#128269; Detecting OS...</span> Linux (WSL2)'},
+  {t: '<span class="b">&#128230; Installing chezmoi...</span>'},
+  {t: '<span class="g">&#10004; chezmoi installed</span>'},
+  {t: ''},
+  {t: '<span class="m">&#128640; Applying dotfiles...</span>'},
+  {t: '<span class="y">&#9881;&#65039;  Prompting for preferences...</span>'},
+  {t: ''},
+  {t: 'Default shell [fish/zsh/bash]: <span class="b">fish</span>'},
+  {t: 'Machine type [work/personal]: <span class="b">personal</span>'},
+  {t: 'Install brew tools? [Y/n]: <span class="b">Y</span>'},
+  {t: ''},
+  {t: '<span class="y">&#127866; Installing brew tools...</span>'},
+  {t: '<span class="g">&#10004; starship</span>   <span class="g">&#10004; eza</span>      <span class="g">&#10004; bat</span>'},
+  {t: '<span class="g">&#10004; fzf</span>        <span class="g">&#10004; zoxide</span>   <span class="g">&#10004; atuin</span>'},
+  {t: '<span class="g">&#10004; direnv</span>     <span class="g">&#10004; delta</span>    <span class="g">&#10004; ripgrep</span>'},
+  {t: ''},
+  {t: '<span class="b">&#128031; Installing Fish plugins...</span>'},
+  {t: '<span class="g">&#10004; fisher</span>  <span class="g">&#10004; fzf.fish</span>  <span class="g">&#10004; z</span>  <span class="g">&#10004; puffer-fish</span>'},
+  {t: ''},
+  {t: '<span class="m">&#10024; Done! Restart your terminal to get started.</span>'},
+];
+
+var terminalStarted = false;
+var termBody = document.getElementById('terminal-body');
+
+function runTerminalAnimation() {
+  if (terminalStarted) return;
+  terminalStarted = true;
+  terminalLines.forEach(function(line, i) {
+    var div = document.createElement('div');
+    div.className = 'terminal-line';
+    div.innerHTML = line.t || '&nbsp;';
+    termBody.appendChild(div);
+    setTimeout(function() { div.classList.add('visible'); }, i * 80);
+  });
+}
+
+var obs = new IntersectionObserver(function(entries) {
+  if (entries[0].isIntersecting) { runTerminalAnimation(); obs.disconnect(); }
+}, { threshold: 0.3 });
+obs.observe(document.querySelector('.terminal-window'));
+
+/* Smooth scroll for nav */
+document.querySelectorAll('nav a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var target = document.querySelector(this.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+</body>
+</html>

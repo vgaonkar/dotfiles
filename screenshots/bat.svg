@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500" viewBox="0 0 900 500">
+  <rect width="900" height="500" rx="8" fill="#24273a"/>
+  <!-- title bar -->
+  <rect width="900" height="32" rx="8" fill="#363a4f"/>
+  <rect x="0" y="16" width="900" height="16" fill="#363a4f"/>
+  <circle cx="16" cy="16" r="6" fill="#ed8796"/>
+  <circle cx="34" cy="16" r="6" fill="#eed49f"/>
+  <circle cx="52" cy="16" r="6" fill="#a6da95"/>
+  <text x="450" y="21" text-anchor="middle" font-family="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace" font-size="13" fill="#a5adcb">bat - starship.toml</text>
+  <style>text { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace; font-size: 13px; }</style>
+  <text x="20" y="50" fill="#c6a0f6">❯ </text>
+  <text x="36.8" y="50" fill="#cad3f5">bat dot_config/starship.toml</text>
+  <text x="20" y="70" fill="#494d64">───────┬────────────────────────────────────────</text>
+  <text x="20" y="90" fill="#494d64">       │ </text>
+  <text x="95.60000000000001" y="90" fill="#a5adcb">File: </text>
+  <text x="146.0" y="90" fill="#cad3f5">dot_config/starship.toml</text>
+  <text x="20" y="110" fill="#494d64">───────┼────────────────────────────────────────</text>
+  <text x="20" y="130" fill="#494d64">   1   │ </text>
+  <text x="95.60000000000001" y="130" fill="#8aadf4">[character]</text>
+  <text x="20" y="150" fill="#494d64">   2   │ </text>
+  <text x="95.60000000000001" y="150" fill="#8bd5ca">success_symbol</text>
+  <text x="213.20000000000002" y="150" fill="#cad3f5"> = </text>
+  <text x="238.40000000000003" y="150" fill="#a6da95">&quot;[❯](green)&quot;</text>
+  <text x="20" y="170" fill="#494d64">   3   │ </text>
+  <text x="95.60000000000001" y="170" fill="#8bd5ca">error_symbol</text>
+  <text x="196.40000000000003" y="170" fill="#cad3f5"> = </text>
+  <text x="221.60000000000002" y="170" fill="#a6da95">&quot;[❯](red)&quot;</text>
+  <text x="20" y="190" fill="#494d64">   4   │ </text>
+  <text x="20" y="210" fill="#494d64">   5   │ </text>
+  <text x="95.60000000000001" y="210" fill="#8aadf4">[git_branch]</text>
+  <text x="20" y="230" fill="#494d64">   6   │ </text>
+  <text x="95.60000000000001" y="230" fill="#8bd5ca">symbol</text>
+  <text x="146.0" y="230" fill="#cad3f5"> = </text>
+  <text x="171.2" y="230" fill="#a6da95">&quot; &quot;</text>
+  <text x="20" y="250" fill="#494d64">   7   │ </text>
+  <text x="20" y="270" fill="#494d64">   8   │ </text>
+  <text x="95.60000000000001" y="270" fill="#8aadf4">[directory]</text>
+  <text x="20" y="290" fill="#494d64">   9   │ </text>
+  <text x="95.60000000000001" y="290" fill="#8bd5ca">truncation_length</text>
+  <text x="238.40000000000003" y="290" fill="#cad3f5"> = </text>
+  <text x="263.6" y="290" fill="#f5a97f">3</text>
+  <text x="20" y="310" fill="#494d64">  10   │ </text>
+  <text x="95.60000000000001" y="310" fill="#a5adcb"># </text>
+  <text x="112.4" y="310" fill="#a5adcb">Fish-compatible path truncation</text>
+  <text x="20" y="330" fill="#494d64">───────┴────────────────────────────────────────</text>
+</svg>

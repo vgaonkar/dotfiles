@@ -6,8 +6,27 @@
 [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat&logo=linux&logoColor=black)](docs/07-platform-specific.md#linux)
 [![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat&logo=windows&logoColor=white)](docs/07-platform-specific.md#windows)
 [![WSL2](https://img.shields.io/badge/WSL2-0D9B68?style=flat&logo=windows-terminal&logoColor=white)](docs/07-platform-specific.md#wsl2)
+[![Website](https://img.shields.io/badge/Website-View%20Showcase-8aadf4?style=flat&logoColor=white)](site/index.html)
 
 One-command setup for a consistent development environment across all your machines.
+
+## 📸 Preview
+
+![Terminal Preview](screenshots/prompt.svg)
+
+<details>
+<summary>📷 More Screenshots</summary>
+
+| Tool | Preview |
+|------|---------|
+| Starship Prompt | ![starship](screenshots/prompt.svg) |
+| Eza (modern ls) | ![eza](screenshots/eza.svg) |
+| Bat (syntax cat) | ![bat](screenshots/bat.svg) |
+| FZF (fuzzy find) | ![fzf](screenshots/fzf.svg) |
+| Atuin (history) | ![atuin](screenshots/atuin.svg) |
+| Zoxide (smart cd) | ![zoxide](screenshots/zoxide.svg) |
+
+</details>
 
 ---
 
@@ -99,19 +118,25 @@ Navigate our comprehensive documentation:
 
 ```
 dotfiles/
-├── 📄 README.md                 # This file
-├── 📁 docs/                     # Documentation
-├── 📁 home/                     # Unix dotfiles (templates)
-│   ├── dot_bashrc.tmpl
-│   ├── dot_zshrc.tmpl
-│   └── dot_config/
-│       ├── fish/config.fish.tmpl
-│       ├── starship.toml
-│       └── ...
-├── 📁 windows/                  # Windows-specific configs
-├── 📁 .chezmoidata/             # Data & secrets (gitignored)
-├── 📁 .chezmoitemplates/        # Shared templates
-└── 📁 scripts/                  # Helper scripts
+├── 📄 README.md                    # This file
+├── 📄 .chezmoi.toml.tmpl           # Chezmoi config (prompts & data)
+├── 📄 run_once_install_default_brew_tools.sh.tmpl  # Bootstrap script
+├── 📄 dot_bashrc.tmpl              # Bash config
+├── 📄 dot_zshrc.tmpl               # Zsh config
+├── 📄 dot_profile.tmpl             # POSIX profile
+├── 📁 dot_config/                  # XDG config dir templates
+│   ├── fish/
+│   │   ├── config.fish.tmpl        # Fish shell config
+│   │   └── fish_plugins            # Fisher plugin list
+│   ├── starship.toml               # Starship prompt theme
+│   ├── git/config.tmpl             # Git config
+│   └── atuin/config.toml           # Atuin history config
+├── 📁 docs/                        # Documentation (10 guides + tools/)
+├── 📁 site/                        # Showcase website
+├── 📁 screenshots/                 # Terminal screenshots
+├── 📁 windows/                     # Windows PowerShell configs
+├── 📁 scripts/                     # Helper & bootstrap scripts
+└── 📁 .chezmoidata/                # Secrets & data (gitignored)
 ```
 
 ---
