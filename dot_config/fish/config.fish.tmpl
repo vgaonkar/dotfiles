@@ -21,13 +21,17 @@ end
 
 # Homebrew initialization
 {{ if eq .chezmoi.os "darwin" -}}
-eval (/opt/homebrew/bin/brew shellenv)
+eval ({{ template "brew-path.tmpl" . }}/bin/brew shellenv)
 {{ else if eq .chezmoi.os "linux" -}}
-if test -d /home/linuxbrew/.linuxbrew
-    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+set -l _brew_prefix "{{ template "brew-path.tmpl" . }}"
+if test -d $_brew_prefix
+    eval ($_brew_prefix/bin/brew shellenv)
 end
 {{- end }}
 
+{{ if .work_machine -}}
+set -gx WORK_MACHINE true
+{{ end -}}
 # Interactive shell configuration
 if status is-interactive
     # Abbreviations
@@ -39,9 +43,9 @@ if status is-interactive
     abbr grep 'grep --color=auto'
 
     # Tool initializations
-    zoxide init fish | source
-    fzf --fish | source
-    direnv hook fish | source
-    atuin init fish | source
-    starship init fish | source
+    if type -q zoxide; zoxide init fish | source; end
+    if type -q fzf; fzf --fish | source; end
+    if type -q direnv; direnv hook fish | source; end
+    if type -q atuin; atuin init fish | source; end
+    if type -q starship; starship init fish | source; end
 end

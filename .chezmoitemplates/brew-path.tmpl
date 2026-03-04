@@ -1,0 +1,9 @@
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   if eq .chezmoi.arch "arm64" -}}
+/opt/homebrew
+{{-   else -}}
+/usr/local
+{{-   end -}}
+{{- else if eq .chezmoi.os "linux" -}}
+/home/linuxbrew/.linuxbrew
+{{- end -}}

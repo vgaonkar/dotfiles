@@ -1,6 +1,17 @@
 [user]
-	name = {{ if (and (hasKey . "git") (hasKey .git "user_name")) }}{{ .git.user_name | quote }}{{ else }}{{ .chezmoi.username | quote }}{{ end }}
-	email = {{ if (and (hasKey . "git") (hasKey .git "user_email")) }}{{ .git.user_email | quote }}{{ else }}{{ (printf "%s@example.com" .chezmoi.username) | quote }}{{ end }}
+	name  = {{ if (and (hasKey . "git") (hasKey .git "user_name")) }}{{ .git.user_name | quote }}{{ else }}{{ .chezmoi.username | quote }}{{ end }}
+	email = {{ if .work_machine }}{{ if (and (hasKey . "git") (hasKey .git "work_email")) }}{{ .git.work_email | quote }}{{ else if (and (hasKey . "git") (hasKey .git "user_email")) }}{{ .git.user_email | quote }}{{ else }}{{ (printf "%s@users.noreply.github.com" .chezmoi.username) | quote }}{{ end }}{{ else }}{{ if (and (hasKey . "git") (hasKey .git "user_email")) }}{{ .git.user_email | quote }}{{ else }}{{ (printf "%s@users.noreply.github.com" .chezmoi.username) | quote }}{{ end }}{{ end }}
+{{ if .work_machine -}}
+{{ if (and (hasKey . "git") (hasKey .git "work_signing_key")) -}}
+	signingkey = {{ .git.work_signing_key | quote }}
+{{- end }}
+{{- else if (and (hasKey . "git") (hasKey .git "signing_key")) -}}
+	signingkey = {{ .git.signing_key | quote }}
+{{- end }}
+{{ if or (and (hasKey . "git") (hasKey .git "signing_key")) (and .work_machine (hasKey . "git") (hasKey .git "work_signing_key")) }}
+[commit]
+	gpgsign = true
+{{ end }}
 
 [core]
 	editor = code --wait

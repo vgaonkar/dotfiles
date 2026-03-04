@@ -101,7 +101,6 @@ dotfiles/
 ├── docs/                                        # 10 markdown guides + tools
 ├── site/                                        # Showcase website
 ├── screenshots/                                 # Terminal previews
-├── windows/                                     # Windows PowerShell configs
 ├── scripts/                                     # Helper & bootstrap scripts
 └── .chezmoidata/                                # Secrets & sensitive data (gitignored)
 ```

@@ -2,6 +2,10 @@
 # This file contains user prompts and machine-specific settings
 # https://www.chezmoi.io/reference/configuration-file/
 
+{{- $isCI := (env "CI") | not | not }}
+{{- $isCodespaces := (env "CODESPACES") | not | not }}
+{{- $isContainer := or $isCI $isCodespaces }}
+
 [data]
   # User preferences - use env vars in CI/non-interactive, prompt interactively
   {{- if eq (env "CHEZMOI_DEFAULT_SHELL") "" }}
@@ -36,6 +40,10 @@
   is_arm64 = {{ eq .chezmoi.arch "arm64" }}
   is_amd64 = {{ eq .chezmoi.arch "amd64" }}
 
+  # Environment detection
+  is_ci        = {{ $isCI }}
+  is_container = {{ $isContainer }}
+
 [diff]
   command = "delta"
   args = ["--side-by-side", "--line-numbers"]
@@ -53,3 +61,7 @@
 [git]
   autoCommit = false
   autoPush = false
+
+[age]
+  identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/key.txt"
+  recipient = ""

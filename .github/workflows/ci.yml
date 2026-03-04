@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck
+        run: bash scripts/lint.sh
+
+  template-test:
+    name: Test Template Rendering
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup chezmoi
+        uses: chezmoi/setup-chezmoi@v2
+
+      - name: Test templates render without error
+        env:
+          CHEZMOI_DEFAULT_SHELL: bash
+          CHEZMOI_INSTALL_TOOLS: "false"
+          CHEZMOI_WORK_MACHINE: "false"
+          CI: "true"
+        run: |
+          chezmoi init --source=. --config=.chezmoi.toml.tmpl --no-tty
+          chezmoi diff

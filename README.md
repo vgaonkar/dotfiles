@@ -2,6 +2,7 @@
 
 > 🏠 A portable, cross-platform dotfiles setup using Chezmoi
 
+[![CI](https://github.com/vgaonkar/dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/vgaonkar/dotfiles/actions)
 [![macOS](https://img.shields.io/badge/macOS-000000?style=flat&logo=apple&logoColor=white)](docs/07-platform-specific.md#macos)
 [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat&logo=linux&logoColor=black)](docs/07-platform-specific.md#linux)
 [![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat&logo=windows&logoColor=white)](docs/07-platform-specific.md#windows)

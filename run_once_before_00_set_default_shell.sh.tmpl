@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# run_once_before_00_set_default_shell.sh.tmpl
+# Installs Fish shell via Homebrew and sets it as the default login shell.
+
+set -euo pipefail
+
+log() {
+  printf '[chezmoi-shell] %s\n' "$*"
+}
+
+warn() {
+  printf '[chezmoi-shell] WARN: %s\n' "$*" >&2
+}
+
+tty_present() {
+  [ -t 0 ] && [ -t 1 ]
+}
+
+case '{{ .chezmoi.os }}' in
+  darwin|linux) ;;
+  *)
+    log "Skipping shell setup on unsupported OS: {{ .chezmoi.os }}."
+    exit 0
+    ;;
+esac
+
+brew_prefix="{{ template "brew-path.tmpl" . }}"
+brew_bin=""
+
+if command -v brew >/dev/null 2>&1; then
+  brew_bin="$(command -v brew)"
+elif [ -x "${brew_prefix}/bin/brew" ]; then
+  brew_bin="${brew_prefix}/bin/brew"
+fi
+
+if [ -z "$brew_bin" ]; then
+  log "Homebrew/Linuxbrew is required but was not found."
+  log "Install from https://brew.sh, then re-run: chezmoi apply"
+  exit 1
+fi
+
+eval "$("$brew_bin" shellenv)"
+
+if "$brew_bin" list --formula --versions fish >/dev/null 2>&1; then
+  log "Already installed: fish"
+else
+  log "Installing fish via Homebrew/Linuxbrew"
+  "$brew_bin" install fish
+fi
+
+fish_bin="$("$brew_bin" --prefix)/bin/fish"
+if [ ! -x "$fish_bin" ] && command -v fish >/dev/null 2>&1; then
+  fish_bin="$(command -v fish)"
+fi
+
+if [ '{{ .default_shell }}' = 'fish' ] && [ -x "$fish_bin" ]; then
+  if [ "${SHELL:-}" = "$fish_bin" ]; then
+    log "Login shell already set to fish: $fish_bin"
+  elif ! tty_present; then
+    warn "Non-interactive session detected; skipping automatic shell change."
+    warn "Set Fish as default shell manually: chsh -s $fish_bin"
+  else
+    if [ -r /etc/shells ] && ! grep -Fxq "$fish_bin" /etc/shells; then
+      if command -v sudo >/dev/null 2>&1; then
+        printf '%s\n' "$fish_bin" | sudo tee -a /etc/shells >/dev/null
+      else
+        warn "sudo not available; could not add $fish_bin to /etc/shells automatically."
+      fi
+    fi
+
+    if command -v chsh >/dev/null 2>&1; then
+      if chsh -s "$fish_bin"; then
+        log "Set login shell to fish: $fish_bin"
+      else
+        warn "Failed to set fish as default shell. Run manually: chsh -s $fish_bin"
+      fi
+    else
+      warn "chsh not available; set default shell manually: chsh -s $fish_bin"
+    fi
+  fi
+fi

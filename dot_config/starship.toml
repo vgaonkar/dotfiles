@@ -21,7 +21,7 @@ ${custom.git_end_separator}\
 $git_commit$git_status$git_metrics$git_state\
 \n$character"""
 
-right_format = "$cmd_duration$nodejs${custom.git_config_email}"
+right_format = "$cmd_duration$nodejs${custom.work}${custom.git_config_email}"
 
 # Fill character (empty space) between the left and right prompt
 [fill]
@@ -69,6 +69,14 @@ disabled = true
 min_time = 2_000
 format = "[󰥔 $duration]($style) "
 style = "fg:gray"
+
+# Show WORK indicator when WORK_MACHINE env var is set
+[custom.work]
+description = "Show work machine indicator when WORK_MACHINE is set."
+command = "echo '󰼑 WORK'"
+format = "[$output]($style) "
+when = '[ "$WORK_MACHINE" = "true" ]'
+style = "bold yellow"
 
 # Output the current git config email address
 [custom.git_config_email]
