@@ -61,7 +61,7 @@ config.default_cwd = '~/Projects'
 -- ── Window chrome ─────────────────────────────────────────────────────────────
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar           = false
-config.window_decorations          = 'RESIZE'
+config.window_decorations          = 'TITLE | RESIZE'
 config.window_padding = { left = 4, right = 4, top = 4, bottom = 4 }
 
 -- ── Keybindings (matching Windows Terminal) ───────────────────────────────────
