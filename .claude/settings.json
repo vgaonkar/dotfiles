@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Agent(*)",
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__t__*",
+      "mcp__plugin_oh-my-claudecode_t__*",
+      "mcp__team__*",
+      "mcp__plugin_oh-my-claudecode_team__*"
+    ]
+  }
+}
