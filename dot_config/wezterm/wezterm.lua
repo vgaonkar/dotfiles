@@ -12,8 +12,8 @@ local target  = wezterm.target_triple
 config.front_end               = 'OpenGL'
 config.webgpu_power_preference = 'HighPerformance'
 -- 120 fps cap — smooth scrolling without burning GPU at idle
-config.max_fps        = 120
-config.animation_fps  = 60
+config.max_fps        = 60
+config.animation_fps  = 30
 
 -- ── Font ──────────────────────────────────────────────────────────────────────
 config.font      = wezterm.font('JetBrainsMono Nerd Font Mono')
