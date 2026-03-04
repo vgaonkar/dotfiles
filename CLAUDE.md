@@ -172,6 +172,22 @@ When adding new configuration:
 - Use atomic commits with conventional commit style
 - Ensure changes work on supported platforms before submitting a PR
 
+### Fixing & Verification Workflow
+
+When fixing anything in the dotfiles repo:
+
+1. **Make the fix** — Edit templates, scripts, or configs as needed
+2. **Run comprehensive QA** — Execute `/oh-my-claudecode:ultraqa` to verify:
+   - All shell scripts pass shellcheck
+   - All templates render without errors
+   - `chezmoi diff` works correctly
+   - GitHub Actions workflow syntax is valid
+3. **Fix any issues found** — Address any QA failures before committing
+4. **Commit with clarity** — Use conventional commits (feat, fix, chore, docs)
+5. **Push to remote** — `git push origin main`
+
+This ensures all changes are validated and production-ready before deployment.
+
 ## Research References
 
 - **Chezmoi-Based Cross-Platform Dotfiles Architecture**: `docs/research/dotfiles-chezmoi-architecture.md` — Comprehensive research on Chezmoi architecture, templating system, secrets management, cross-platform strategies, and comparison with alternatives (researched 2026-03-04)
