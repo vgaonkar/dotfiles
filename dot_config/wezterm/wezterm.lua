@@ -7,8 +7,9 @@ local act     = wezterm.action
 local target  = wezterm.target_triple
 
 -- ── GPU / Renderer ────────────────────────────────────────────────────────────
--- WebGPU is the fastest front-end; auto-falls-back to OpenGL if unavailable.
-config.front_end               = 'WebGpu'
+-- OpenGL is the safest renderer for WSL2; WebGPU can fail to initialise
+-- inside the Windows GPU virtualisation layer that WSL2 uses.
+config.front_end               = 'OpenGL'
 config.webgpu_power_preference = 'HighPerformance'
 -- 120 fps cap — smooth scrolling without burning GPU at idle
 config.max_fps        = 120
@@ -53,12 +54,11 @@ config.colors = {
 }
 
 -- ── Transparency & blur ───────────────────────────────────────────────────────
--- Raised opacity 0.5 → 0.85: less compositing work, still translucent.
--- On Windows: Mica uses DWM hardware composition (much faster than Acrylic
--- software blur).  Acrylic is beautiful but costs ~10 ms/frame in WezTerm.
-config.window_background_opacity = 0.85
+-- 50% opacity matching original Windows Terminal "opacity": 50 + "useAcrylic": true
+-- Acrylic gives real blur-behind transparency (Mica only tints, no transparency).
+config.window_background_opacity = 0.5
 if target:find('windows') then
-  config.win32_system_backdrop = 'Mica'
+  config.win32_system_backdrop = 'Acrylic'
 elseif target:find('apple') then
   config.macos_window_background_blur = 20
 end
@@ -90,32 +90,30 @@ config.check_for_updates = false
 -- Audible bell is a tiny cost; visual flash is cheaper than a system beep
 config.audible_bell = 'Disabled'
 
--- ── Keybindings (matching Windows Terminal) ───────────────────────────────────
--- ctrl+c          → Copy
--- ctrl+shift+c    → Send interrupt (ETX 0x03)
--- ctrl+v          → Paste
+-- ── Keybindings ───────────────────────────────────────────────────────────────
+-- ctrl+c          → Send interrupt (ETX 0x03) — MUST reach the shell
+-- ctrl+shift+c    → Copy to clipboard
+-- ctrl+v          → Paste from clipboard
 -- ctrl+shift+f    → Search
 -- alt+shift+d     → Split pane right
+--
+-- NOTE: Do NOT bind ctrl+c to Copy — it prevents interrupting running processes.
+-- Use ctrl+shift+c for copy (standard Linux terminal convention).
 config.keys = {
   {
-    key    = 'f',
-    mods   = 'CTRL|SHIFT',
-    action = act.Search { CaseSensitiveString = '' },
-  },
-  {
     key    = 'c',
-    mods   = 'CTRL',
+    mods   = 'CTRL|SHIFT',
     action = act.CopyTo 'Clipboard',
-  },
-  {
-    key    = 'c',
-    mods   = 'CTRL|SHIFT',
-    action = act.SendString '\x03',
   },
   {
     key    = 'v',
     mods   = 'CTRL',
     action = act.PasteFrom 'Clipboard',
+  },
+  {
+    key    = 'f',
+    mods   = 'CTRL|SHIFT',
+    action = act.Search { CaseSensitiveString = '' },
   },
   {
     key    = 'd',
