@@ -20,7 +20,7 @@ if [ -x "$brew_bin" ]; then
     log "WezTerm already installed."
   else
     printf '[chezmoi-wezterm] Install WezTerm via brew cask? [y/N] '
-    read -r response
+    read -r response </dev/tty || response=""
     if [[ "$response" =~ ^[Yy] ]]; then
       log "Installing WezTerm..."
       "$brew_bin" install --cask wezterm
@@ -65,14 +65,15 @@ else
 fi
 
 # Offer to install WezTerm on Windows if not already present
-WEZTERM_EXE="${WIN_HOME}/AppData/Local/Programs/WezTerm/wezterm-gui.exe"
+# WezTerm installs to "C:\Program Files\WezTerm\" by default
+WEZTERM_EXE="/mnt/c/Program Files/WezTerm/wezterm-gui.exe"
 if [ -f "$WEZTERM_EXE" ]; then
   log "WezTerm is already installed on Windows."
   exit 0
 fi
 
 printf '[chezmoi-wezterm] WezTerm is not installed on Windows. Install via winget? [y/N] '
-read -r response
+read -r response </dev/tty || response=""
 if [[ ! "$response" =~ ^[Yy] ]]; then
   log "Skipping WezTerm installation. To install later, run:"
   log "  windows/scripts/install-wezterm.ps1"
