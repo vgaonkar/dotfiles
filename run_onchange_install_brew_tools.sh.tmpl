@@ -89,8 +89,8 @@ end
 set -l fish_plugins jorgebucaran/fisher PatrickF1/fzf.fish jethrokuan/z nickeb96/puffer-fish
 if test -f ~/.config/fish/fish_plugins
   set fish_plugins (string split "\n" (string trim (cat ~/.config/fish/fish_plugins)))
-  set fish_plugins (string match -r -v '^\s*#' -- $fish_plugins)
-  set fish_plugins (string match -r '.' -- $fish_plugins)
+  set fish_plugins (string match -r -v "^\\s*#" -- $fish_plugins)
+  set fish_plugins (string match -r -e "." -- $fish_plugins)
 end
 
 if not type -q fisher
