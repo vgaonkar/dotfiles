@@ -56,7 +56,7 @@ config.colors = {
 -- ── Transparency & blur ───────────────────────────────────────────────────────
 -- 50% opacity matching original Windows Terminal "opacity": 50 + "useAcrylic": true
 -- Acrylic gives real blur-behind transparency (Mica only tints, no transparency).
-config.window_background_opacity = 0.5
+config.window_background_opacity = 0.65
 if target:find('windows') then
   config.win32_system_backdrop = 'Acrylic'
 elseif target:find('apple') then
