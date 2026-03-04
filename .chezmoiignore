@@ -82,3 +82,7 @@ __pycache__/
 *.log
 
 # Secrets data is not managed as a dotfile; it is gitignored in .chezmoidata/
+
+# Project-specific directories not managed as dotfiles
+windows/
+home/
