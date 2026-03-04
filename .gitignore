@@ -1,0 +1,14 @@
+# Claude Code / OMC operational state
+.claude/
+.omc/
+
+# Chezmoi secrets
+.chezmoidata/
+
+# Editor/IDE
+.vscode/
+.DS_Store
+
+# Temporary files
+*.tmp
+*.bak
