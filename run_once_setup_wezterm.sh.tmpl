@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# run_once_setup_wezterm.sh.tmpl
+# Copies the WezTerm config to the Windows user profile when running under WSL2,
+# and optionally installs WezTerm via winget.
+# Runs once after chezmoi apply deploys ~/.config/wezterm/wezterm.lua.
+#
+# On macOS, installs WezTerm via brew cask (if install_tools is true).
+
+set -euo pipefail
+
+log()  { printf '[chezmoi-wezterm] %s\n' "$*"; }
+warn() { printf '[chezmoi-wezterm] WARN: %s\n' "$*" >&2; }
+
+# ── macOS: install via brew cask ─────────────────────────────────────────────
+{{ if eq .chezmoi.os "darwin" -}}
+{{ if .install_tools -}}
+brew_bin="{{ template "brew-path.tmpl" . }}/bin/brew"
+if [ -x "$brew_bin" ]; then
+  if "$brew_bin" list --cask wezterm >/dev/null 2>&1; then
+    log "WezTerm already installed."
+  else
+    printf '[chezmoi-wezterm] Install WezTerm via brew cask? [y/N] '
+    read -r response
+    if [[ "$response" =~ ^[Yy] ]]; then
+      log "Installing WezTerm..."
+      "$brew_bin" install --cask wezterm
+      log "WezTerm installed."
+    else
+      log "Skipping WezTerm installation."
+    fi
+  fi
+else
+  warn "brew not found; skipping WezTerm install."
+fi
+{{- end }}
+{{- end }}
+
+# ── Linux / WSL2: sync config to Windows + optional winget install ────────────
+{{ if eq .chezmoi.os "linux" -}}
+# Only continue if inside WSL
+if ! grep -qi microsoft /proc/version 2>/dev/null; then
+  log "Not running in WSL; nothing to do on Linux."
+  exit 0
+fi
+
+# Resolve Windows user home via PowerShell
+WIN_USER=$(powershell.exe -Command '$env:USERNAME' 2>/dev/null | tr -d '\r')
+WIN_HOME="/mnt/c/Users/${WIN_USER}"
+
+if [ ! -d "$WIN_HOME" ]; then
+  warn "Could not find Windows home at ${WIN_HOME}. Skipping."
+  exit 0
+fi
+
+# Sync wezterm config from WSL to Windows
+WEZTERM_SRC="${HOME}/.config/wezterm/wezterm.lua"
+WEZTERM_DST="${WIN_HOME}/.config/wezterm/wezterm.lua"
+
+if [ -f "$WEZTERM_SRC" ]; then
+  mkdir -p "$(dirname "$WEZTERM_DST")"
+  cp "$WEZTERM_SRC" "$WEZTERM_DST"
+  log "Config synced to ${WEZTERM_DST}"
+else
+  warn "Source config not found at ${WEZTERM_SRC}; skipping sync."
+fi
+
+# Offer to install WezTerm on Windows if not already present
+WEZTERM_EXE="${WIN_HOME}/AppData/Local/Programs/WezTerm/wezterm-gui.exe"
+if [ -f "$WEZTERM_EXE" ]; then
+  log "WezTerm is already installed on Windows."
+  exit 0
+fi
+
+printf '[chezmoi-wezterm] WezTerm is not installed on Windows. Install via winget? [y/N] '
+read -r response
+if [[ ! "$response" =~ ^[Yy] ]]; then
+  log "Skipping WezTerm installation. To install later, run:"
+  log "  windows/scripts/install-wezterm.ps1"
+  exit 0
+fi
+
+log "Installing WezTerm on Windows via winget..."
+powershell.exe -Command "winget install --id wez.wezterm --accept-source-agreements --accept-package-agreements"
+log "WezTerm installed. Launch it from the Windows Start Menu."
+{{- end }}
