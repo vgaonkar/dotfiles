@@ -100,6 +100,7 @@ config.audible_bell = 'Disabled'
 -- NOTE: Do NOT bind ctrl+c to Copy — it prevents interrupting running processes.
 -- Use ctrl+shift+c for copy (standard Linux terminal convention).
 config.keys = {
+  -- ── Copy / Paste / Search (existing) ────────────────────────────────────
   {
     key    = 'c',
     mods   = 'CTRL|SHIFT',
@@ -115,6 +116,8 @@ config.keys = {
     mods   = 'CTRL|SHIFT',
     action = act.Search { CaseSensitiveString = '' },
   },
+
+  -- ── Splits ──────────────────────────────────────────────────────────────
   {
     key    = 'd',
     mods   = 'ALT|SHIFT',
@@ -122,6 +125,51 @@ config.keys = {
       direction = 'Right',
       command   = { domain = 'CurrentPaneDomain' },
     },
+  },
+  {
+    key    = 'e',
+    mods   = 'ALT|SHIFT',
+    action = act.SplitPane {
+      direction = 'Down',
+      command   = { domain = 'CurrentPaneDomain' },
+    },
+  },
+
+  -- ── Pane navigation (Alt+Arrow) ─────────────────────────────────────────
+  { key = 'LeftArrow',  mods = 'ALT', action = act.ActivatePaneDirection 'Left'  },
+  { key = 'RightArrow', mods = 'ALT', action = act.ActivatePaneDirection 'Right' },
+  { key = 'UpArrow',    mods = 'ALT', action = act.ActivatePaneDirection 'Up'    },
+  { key = 'DownArrow',  mods = 'ALT', action = act.ActivatePaneDirection 'Down'  },
+
+  -- ── Tabs / Window (Win+key via PowerToys → Ctrl+Shift+key) ──────────────
+  -- PowerToys remaps Win+T/W/N/Enter → Ctrl+Shift+T/W/N/Enter (wezterm-gui only)
+  {
+    key    = 't',
+    mods   = 'CTRL|SHIFT',
+    action = act.SpawnTab 'CurrentPaneDomain',
+  },
+  {
+    key    = 'w',
+    mods   = 'CTRL|SHIFT',
+    action = act.CloseCurrentTab { confirm = true },
+  },
+  {
+    key    = 'n',
+    mods   = 'CTRL|SHIFT',
+    action = act.SpawnWindow,
+  },
+  {
+    key    = 'Enter',
+    mods   = 'CTRL|SHIFT',
+    action = act.ToggleFullScreen,
+  },
+
+  -- ── Help ────────────────────────────────────────────────────────────────
+  -- Command palette: searchable list of all actions + keybindings
+  {
+    key    = 'p',
+    mods   = 'CTRL|SHIFT',
+    action = act.ActivateCommandPalette,
   },
 }
 
