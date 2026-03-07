@@ -64,6 +64,7 @@
   autoCommit = false
   autoPush = false
 
-[age]
-  identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/key.txt"
-  recipient = ""
+# To enable age encryption, uncomment and configure:
+# [age]
+#   identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/key.txt"
+#   recipient = "age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

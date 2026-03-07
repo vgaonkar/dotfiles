@@ -33,7 +33,7 @@ Example platform-specific logic:
 
 ### Bootstrap & Installation
 - **`.chezmoi.toml.tmpl`** — Main Chezmoi configuration with interactive prompts for user preferences
-- **`run_once_install_default_brew_tools.sh.tmpl`** — One-time bootstrap script that installs 20+ CLI tools (starship, zoxide, eza, bat, fzf, etc.) via Homebrew or Linuxbrew
+- **`run_onchange_install_brew_tools.sh.tmpl`** — Bootstrap script that installs 20+ CLI tools (starship, zoxide, eza, bat, fzf, etc.) via Homebrew or Linuxbrew
 - Secrets stored in `.chezmoidata/` (gitignored) to avoid committing sensitive data
 
 ## Common Development Commands
@@ -87,7 +87,7 @@ When adding a new configuration file that needs platform-specific or user-specif
 ```
 dotfiles/
 ├── .chezmoi.toml.tmpl                           # Config with prompts & user data
-├── run_once_install_default_brew_tools.sh.tmpl  # Tool bootstrap (one-time)
+├── run_onchange_install_brew_tools.sh.tmpl      # Tool bootstrap (runs on change)
 ├── dot_bashrc.tmpl                              # Bash config
 ├── dot_zshrc.tmpl                               # Zsh config
 ├── dot_profile.tmpl                             # POSIX profile
