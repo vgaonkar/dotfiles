@@ -37,5 +37,5 @@ jobs:
           CHEZMOI_WORK_MACHINE: "false"
           CI: "true"
         run: |
-          chezmoi init --source=. --config=.chezmoi.toml.tmpl --no-tty
-          chezmoi diff
+          chezmoi init --source=. --no-tty
+          chezmoi diff --no-pager
