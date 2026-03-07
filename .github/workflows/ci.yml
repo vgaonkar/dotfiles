@@ -26,7 +26,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup chezmoi
-        uses: chezmoi/setup-chezmoi@v2
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/bin"
+        env:
+          PATH: ${{ format('{0}/bin:{1}', github.workspace, env.PATH) }}
+
+      - name: Add chezmoi to PATH
+        run: echo "$HOME/bin" >> "$GITHUB_PATH"
 
       - name: Test templates render without error
         env:
