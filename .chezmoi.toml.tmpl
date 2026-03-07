@@ -44,6 +44,7 @@
   is_ci        = {{ $isCI }}
   is_container = {{ $isContainer }}
 
+{{ if not $isCI -}}
 [diff]
   command = "delta"
   args = ["--side-by-side", "--line-numbers"]
@@ -54,6 +55,7 @@
 [edit]
   command = "code"
   args = ["--wait"]
+{{ end -}}
 
 [cd]
   command = "code"
