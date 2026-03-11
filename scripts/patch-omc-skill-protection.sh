@@ -8,14 +8,15 @@
 # This is a workaround for OMC not supporting custom skill protection levels.
 # Custom skills are instruction-loaders that pose no risk and need no protection.
 #
-# See: https://github.com/Yeachan-Heo/oh-my-claudecode/issues/TBD
+# See: https://github.com/Yeachan-Heo/oh-my-claudecode/issues/1581
 #
 # Run this after every `omc update` to re-apply the patch.
 # ==============================================================================
-set -euo pipefail
+set -eo pipefail
 
 TS_FILE="/home/dev/.claude/plugins/marketplaces/omc/src/hooks/skill-state/index.ts"
 MJS_FILE="/home/dev/.claude/plugins/marketplaces/omc/scripts/pre-tool-enforcer.mjs"
+TEMPLATE_FILE="/home/dev/.claude/plugins/marketplaces/omc/templates/hooks/pre-tool-use.mjs"
 
 # --- Colors ---
 GREEN='\033[0;32m'
@@ -27,13 +28,17 @@ info()  { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
-# --- Pre-flight checks ---
-[[ -f "$TS_FILE" ]]  || error "TypeScript source not found: $TS_FILE"
-[[ -f "$MJS_FILE" ]] || error "Deployed script not found: $MJS_FILE"
+TMPFILE="" TMPFILE2="" TMPFILE3=""
+trap 'rm -f "$TMPFILE" "$TMPFILE2" "$TMPFILE3"' EXIT
 
-# --- Check if upstream fix has landed ---
-if grep -q 'phase-resume' "$TS_FILE" && grep -q 'phase-resume' "$MJS_FILE"; then
-    info "Upstream fix detected, no patch needed"
+# --- Pre-flight checks ---
+[[ -f "$TS_FILE" ]]       || error "TypeScript source not found: $TS_FILE"
+[[ -f "$MJS_FILE" ]]      || error "Deployed script not found: $MJS_FILE"
+[[ -f "$TEMPLATE_FILE" ]] || error "Template hook not found: $TEMPLATE_FILE"
+
+# --- Check if upstream fix has landed (all 3 files must have it) ---
+if grep -q 'phase-resume' "$TS_FILE" && grep -q 'phase-resume' "$MJS_FILE" && grep -q 'phase-resume' "$TEMPLATE_FILE"; then
+    info "Upstream fix detected in all 3 files, no patch needed"
     exit 0
 fi
 
@@ -74,7 +79,6 @@ else
 
     # Build insertion block in a temp file
     TMPFILE=$(mktemp)
-    trap 'rm -f "$TMPFILE"' EXIT
 
     {
         echo ""
@@ -104,7 +108,6 @@ else
 
     # Build insertion block in a temp file
     TMPFILE2=$(mktemp)
-    trap 'rm -f "$TMPFILE" "$TMPFILE2"' EXIT
 
     {
         for skill in "${CUSTOM_SKILLS[@]}"; do
@@ -119,6 +122,34 @@ else
         info "Deployed script patched successfully"
     else
         error "Deployed script patch failed"
+    fi
+fi
+
+# ==============================================================================
+# Patch 3: Template hook (templates/hooks/pre-tool-use.mjs)
+# This is the file that ACTUALLY RUNS as the pre-tool-use hook.
+# ==============================================================================
+if grep -q 'phase-resume' "$TEMPLATE_FILE"; then
+    info "Template hook already patched, skipping"
+else
+    info "Patching template hook: $TEMPLATE_FILE"
+
+    # Build insertion block in a temp file
+    TMPFILE3=$(mktemp)
+
+    {
+        for skill in "${CUSTOM_SKILLS[@]}"; do
+            echo "  '${skill}': 'none',"
+        done
+    } > "$TMPFILE3"
+
+    # Anchor: insert after "deepinit: 'heavy'," line
+    sed -i "/^  deepinit: 'heavy',$/r $TMPFILE3" "$TEMPLATE_FILE"
+
+    if grep -q 'phase-resume' "$TEMPLATE_FILE"; then
+        info "Template hook patched successfully"
+    else
+        error "Template hook patch failed"
     fi
 fi
 
