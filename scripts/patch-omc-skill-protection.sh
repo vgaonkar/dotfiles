@@ -2,11 +2,13 @@
 # ==============================================================================
 # patch-omc-skill-protection.sh
 #
-# Patches oh-my-claudecode's skill protection maps to register custom skills
-# with 'none' protection level, so they don't trigger reinforcement prompts.
+# Patches oh-my-claudecode's skill protection default from 'light' to 'none'
+# for unknown skills. Without this patch, ANY skill not in OMC's built-in
+# SKILL_PROTECTION map defaults to 'light', which writes skill-active-state.json
+# and blocks the Stop hook for up to 3 reinforcements / 5 minutes.
 #
-# This is a workaround for OMC not supporting custom skill protection levels.
 # Custom skills are instruction-loaders that pose no risk and need no protection.
+# Built-in skills that need protection are already explicitly listed in the map.
 #
 # See: https://github.com/Yeachan-Heo/oh-my-claudecode/issues/1581
 #
@@ -26,115 +28,96 @@ info()  { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
-TMPFILE_DEEP="" TMPFILE_FLAT="" TMPFILE_BUNDLE=""
-trap 'rm -f "$TMPFILE_DEEP" "$TMPFILE_FLAT" "$TMPFILE_BUNDLE"' EXIT
+# ==============================================================================
+# Phase 1: Change default fallback from 'light' to 'none'
+#
+# This is the core fix. Instead of maintaining an ever-growing list of custom
+# skills, we change the default so unknown skills get 'none' protection.
+# All OMC built-in skills that need protection are already explicitly listed.
+#
+# Target patterns (all variants across TS, MJS, JS, CJS files):
+#   return SKILL_PROTECTION[normalized] ?? 'light';
+#   return SKILL_PROTECTION_MAP[normalized] || 'light';
+#   return SKILL_PROTECTION[normalized] || 'light';
+#   (bundled) ... || "light"
+# ==============================================================================
 
-# --- Custom skills to add (instruction-loaders, no protection needed) ---
-CUSTOM_SKILLS=(
-    phase-resume
-    phase-complete
-    phase-runner
-    phase-plan
-    skill-sync
-    research
-    deploy
-    deep-verify
-    config-backup
-    diff-audit
-    dockerize
-    fullstack-launch
-    fullstack-upgrade
-    maintenance-schedule
-    monitor-setup
-    post-mortem
-    project-health
-    project-tidy
-    resume-update
-    riceco-kickoff
-    skill-create
-    linkedin-sync
-    omc-coach
-)
+ALL_FILES=$(grep -rl "SKILL_PROTECTION" "$OMC_BASE" 2>/dev/null \
+    | grep -v node_modules | grep -v '__tests__' | grep -v '.test.' | grep -v '.jsonl') || true
 
-# --- Build insertion blocks ---
-TMPFILE_DEEP=$(mktemp)
-TMPFILE_FLAT=$(mktemp)
+if [[ -z "$ALL_FILES" ]]; then
+    error "No SKILL_PROTECTION files found in $OMC_BASE — is OMC installed?"
+fi
 
-# For TS files (indented with comment header, anchor: "note: 'none',")
-{
-    echo ""
-    echo "  // === Custom skills (instruction-loaders, no protection needed) ==="
-    for skill in "${CUSTOM_SKILLS[@]}"; do
-        echo "  '${skill}': 'none',"
-    done
-} > "$TMPFILE_DEEP"
-
-# For MJS/JS/CJS files (flat entries, anchor: "deepinit: 'heavy',")
-{
-    for skill in "${CUSTOM_SKILLS[@]}"; do
-        echo "  '${skill}': 'none',"
-    done
-} > "$TMPFILE_FLAT"
-
-# For bundled cli.cjs files (double quotes, no trailing comma, anchor: 'deepinit: "heavy"')
-TMPFILE_BUNDLE=$(mktemp)
-{
-    for skill in "${CUSTOM_SKILLS[@]}"; do
-        echo "      \"${skill}\": \"none\","
-    done
-} > "$TMPFILE_BUNDLE"
-
-# --- Find and patch ALL files containing SKILL_PROTECTION ---
-ALL_FILES=$(grep -rl "SKILL_PROTECTION" "$OMC_BASE" 2>/dev/null | grep -v node_modules | grep -v '__tests__' | grep -v '.test.' | grep -v '.jsonl')
-
-PATCHED=0
-SKIPPED=0
+DEFAULT_PATCHED=0
+DEFAULT_ALREADY=0
 
 for file in $ALL_FILES; do
-    if grep -q 'phase-resume' "$file"; then
-        SKIPPED=$((SKIPPED + 1))
+    # Check if already patched (default is already 'none')
+    if grep -qE "(SKILL_PROTECTION\w*\[normalized\].*\?\?|\|\|)\s*['\"]none['\"]" "$file" 2>/dev/null; then
+        DEFAULT_ALREADY=$((DEFAULT_ALREADY + 1))
         continue
     fi
 
-    # Determine which anchor and insertion block to use
-    if grep -q "note: 'none'," "$file"; then
-        # TS-style file with note: 'none' anchor
-        sed -i "/note: 'none',/r $TMPFILE_DEEP" "$file"
-    elif grep -q "deepinit: 'heavy'," "$file"; then
-        # MJS/JS/CJS-style file with deepinit anchor (single quotes)
-        sed -i "/deepinit: 'heavy',/r $TMPFILE_FLAT" "$file"
-    elif grep -q 'deepinit: "heavy"' "$file"; then
-        # Bundled cli.cjs file (double quotes, no trailing comma)
-        sed -i '/deepinit: "heavy"/r '"$TMPFILE_BUNDLE" "$file"
-    else
-        warn "No known anchor in $file, skipping"
-        continue
+    # Patch: replace 'light' default with 'none' in getSkillProtection functions
+    # Pattern 1: ?? 'light' (TS nullish coalescing)
+    if grep -q "?? 'light'" "$file"; then
+        sed -i "s/?? 'light'/?? 'none'/g" "$file"
+    fi
+    # Pattern 2: || 'light' (JS/MJS logical OR, single quotes)
+    if grep -q "|| 'light'" "$file"; then
+        sed -i "s/|| 'light'/|| 'none'/g" "$file"
+    fi
+    # Pattern 3: || "light" (bundled CJS, double quotes)
+    if grep -q '|| "light"' "$file"; then
+        sed -i 's/|| "light"/|| "none"/g' "$file"
+    fi
+    # Pattern 4: ?? "light" (bundled CJS nullish coalescing)
+    if grep -q '?? "light"' "$file"; then
+        sed -i 's/?? "light"/?? "none"/g' "$file"
     fi
 
-    if grep -q 'phase-resume' "$file"; then
-        info "Patched: $file"
-        PATCHED=$((PATCHED + 1))
+    # Verify the patch took effect
+    if grep -qE "(SKILL_PROTECTION\w*\[normalized\].*\?\?|\|\|)\s*['\"]none['\"]" "$file" 2>/dev/null; then
+        info "Patched default: $file"
+        DEFAULT_PATCHED=$((DEFAULT_PATCHED + 1))
     else
-        warn "Patch may have failed: $file"
+        # Check if the file even has a getSkillProtection function
+        if grep -q "getSkillProtection" "$file"; then
+            warn "Could not verify patch in: $file"
+        fi
     fi
 done
 
-if [[ $PATCHED -eq 0 && $SKIPPED -gt 0 ]]; then
-    info "All $SKIPPED files already patched (or upstream fix landed)"
-elif [[ $PATCHED -gt 0 ]]; then
-    info "Patched $PATCHED file(s), $SKIPPED already done"
+if [[ $DEFAULT_PATCHED -eq 0 && $DEFAULT_ALREADY -gt 0 ]]; then
+    info "All $DEFAULT_ALREADY files already have 'none' default (patch applied or upstream fix landed)"
+elif [[ $DEFAULT_PATCHED -gt 0 ]]; then
+    info "Patched default in $DEFAULT_PATCHED file(s), $DEFAULT_ALREADY already done"
+else
+    warn "No files needed default patching — check if OMC structure changed"
 fi
 
 # ==============================================================================
-# Clean up stale skill-active-state.json files
+# Phase 2: Clean up stale skill-active-state.json files
 # ==============================================================================
 info "Cleaning up stale skill state files..."
 STALE_COUNT=$(find /home/dev/Projects -name "skill-active-state.json" -print -delete 2>/dev/null | wc -l)
-info "Deleted $STALE_COUNT stale skill-active-state.json file(s)"
+if [[ $STALE_COUNT -gt 0 ]]; then
+    info "Deleted $STALE_COUNT stale skill-active-state.json file(s)"
+else
+    info "No stale skill state files found"
+fi
+
+# Also clean from home .claude directory (session-scoped state)
+STALE_HOME=$(find /home/dev/.claude -name "skill-active-state.json" -print -delete 2>/dev/null | wc -l)
+if [[ $STALE_HOME -gt 0 ]]; then
+    info "Deleted $STALE_HOME stale skill state file(s) from ~/.claude"
+fi
 
 # ==============================================================================
 # Summary
 # ==============================================================================
 echo ""
-info "Patch complete! ${#CUSTOM_SKILLS[@]} custom skills registered with 'none' protection."
+info "Patch complete! Default protection for unknown skills changed from 'light' to 'none'."
+info "Built-in skills with explicit protection levels are unaffected."
 info "Re-run this script after every 'omc update'."
