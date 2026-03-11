@@ -14,9 +14,7 @@
 # ==============================================================================
 set -eo pipefail
 
-TS_FILE="/home/dev/.claude/plugins/marketplaces/omc/src/hooks/skill-state/index.ts"
-MJS_FILE="/home/dev/.claude/plugins/marketplaces/omc/scripts/pre-tool-enforcer.mjs"
-TEMPLATE_FILE="/home/dev/.claude/plugins/marketplaces/omc/templates/hooks/pre-tool-use.mjs"
+OMC_BASE="/home/dev/.claude/plugins"
 
 # --- Colors ---
 GREEN='\033[0;32m'
@@ -28,19 +26,8 @@ info()  { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
-TMPFILE="" TMPFILE2="" TMPFILE3=""
-trap 'rm -f "$TMPFILE" "$TMPFILE2" "$TMPFILE3"' EXIT
-
-# --- Pre-flight checks ---
-[[ -f "$TS_FILE" ]]       || error "TypeScript source not found: $TS_FILE"
-[[ -f "$MJS_FILE" ]]      || error "Deployed script not found: $MJS_FILE"
-[[ -f "$TEMPLATE_FILE" ]] || error "Template hook not found: $TEMPLATE_FILE"
-
-# --- Check if upstream fix has landed (all 3 files must have it) ---
-if grep -q 'phase-resume' "$TS_FILE" && grep -q 'phase-resume' "$MJS_FILE" && grep -q 'phase-resume' "$TEMPLATE_FILE"; then
-    info "Upstream fix detected in all 3 files, no patch needed"
-    exit 0
-fi
+TMPFILE_DEEP="" TMPFILE_FLAT="" TMPFILE_BUNDLE=""
+trap 'rm -f "$TMPFILE_DEEP" "$TMPFILE_FLAT" "$TMPFILE_BUNDLE"' EXIT
 
 # --- Custom skills to add (instruction-loaders, no protection needed) ---
 CUSTOM_SKILLS=(
@@ -69,88 +56,73 @@ CUSTOM_SKILLS=(
     omc-coach
 )
 
-# ==============================================================================
-# Patch 1: TypeScript source (src/hooks/skill-state/index.ts)
-# ==============================================================================
-if grep -q 'Custom skills (instruction-loaders' "$TS_FILE"; then
-    info "TypeScript source already patched, skipping"
-else
-    info "Patching TypeScript source: $TS_FILE"
+# --- Build insertion blocks ---
+TMPFILE_DEEP=$(mktemp)
+TMPFILE_FLAT=$(mktemp)
 
-    # Build insertion block in a temp file
-    TMPFILE=$(mktemp)
+# For TS files (indented with comment header, anchor: "note: 'none',")
+{
+    echo ""
+    echo "  // === Custom skills (instruction-loaders, no protection needed) ==="
+    for skill in "${CUSTOM_SKILLS[@]}"; do
+        echo "  '${skill}': 'none',"
+    done
+} > "$TMPFILE_DEEP"
 
-    {
-        echo ""
-        echo "  // === Custom skills (instruction-loaders, no protection needed) ==="
-        for skill in "${CUSTOM_SKILLS[@]}"; do
-            echo "  '${skill}': 'none',"
-        done
-    } > "$TMPFILE"
+# For MJS/JS/CJS files (flat entries, anchor: "deepinit: 'heavy',")
+{
+    for skill in "${CUSTOM_SKILLS[@]}"; do
+        echo "  '${skill}': 'none',"
+    done
+} > "$TMPFILE_FLAT"
 
-    # Anchor: insert after "note: 'none'," in the instant/read-only block
-    sed -i "/^  note: 'none',$/r $TMPFILE" "$TS_FILE"
+# For bundled cli.cjs files (double quotes, no trailing comma, anchor: 'deepinit: "heavy"')
+TMPFILE_BUNDLE=$(mktemp)
+{
+    for skill in "${CUSTOM_SKILLS[@]}"; do
+        echo "      \"${skill}\": \"none\","
+    done
+} > "$TMPFILE_BUNDLE"
 
-    if grep -q 'phase-resume' "$TS_FILE"; then
-        info "TypeScript source patched successfully"
-    else
-        error "TypeScript source patch failed"
+# --- Find and patch ALL files containing SKILL_PROTECTION ---
+ALL_FILES=$(grep -rl "SKILL_PROTECTION" "$OMC_BASE" 2>/dev/null | grep -v node_modules | grep -v '__tests__' | grep -v '.test.' | grep -v '.jsonl')
+
+PATCHED=0
+SKIPPED=0
+
+for file in $ALL_FILES; do
+    if grep -q 'phase-resume' "$file"; then
+        SKIPPED=$((SKIPPED + 1))
+        continue
     fi
-fi
 
-# ==============================================================================
-# Patch 2: Deployed script (scripts/pre-tool-enforcer.mjs)
-# ==============================================================================
-if grep -q 'phase-resume' "$MJS_FILE"; then
-    info "Deployed script already patched, skipping"
-else
-    info "Patching deployed script: $MJS_FILE"
-
-    # Build insertion block in a temp file
-    TMPFILE2=$(mktemp)
-
-    {
-        for skill in "${CUSTOM_SKILLS[@]}"; do
-            echo "  '${skill}': 'none',"
-        done
-    } > "$TMPFILE2"
-
-    # Anchor: insert after "deepinit: 'heavy'," line
-    sed -i "/^  deepinit: 'heavy',$/r $TMPFILE2" "$MJS_FILE"
-
-    if grep -q 'phase-resume' "$MJS_FILE"; then
-        info "Deployed script patched successfully"
+    # Determine which anchor and insertion block to use
+    if grep -q "note: 'none'," "$file"; then
+        # TS-style file with note: 'none' anchor
+        sed -i "/note: 'none',/r $TMPFILE_DEEP" "$file"
+    elif grep -q "deepinit: 'heavy'," "$file"; then
+        # MJS/JS/CJS-style file with deepinit anchor (single quotes)
+        sed -i "/deepinit: 'heavy',/r $TMPFILE_FLAT" "$file"
+    elif grep -q 'deepinit: "heavy"' "$file"; then
+        # Bundled cli.cjs file (double quotes, no trailing comma)
+        sed -i '/deepinit: "heavy"/r '"$TMPFILE_BUNDLE" "$file"
     else
-        error "Deployed script patch failed"
+        warn "No known anchor in $file, skipping"
+        continue
     fi
-fi
 
-# ==============================================================================
-# Patch 3: Template hook (templates/hooks/pre-tool-use.mjs)
-# This is the file that ACTUALLY RUNS as the pre-tool-use hook.
-# ==============================================================================
-if grep -q 'phase-resume' "$TEMPLATE_FILE"; then
-    info "Template hook already patched, skipping"
-else
-    info "Patching template hook: $TEMPLATE_FILE"
-
-    # Build insertion block in a temp file
-    TMPFILE3=$(mktemp)
-
-    {
-        for skill in "${CUSTOM_SKILLS[@]}"; do
-            echo "  '${skill}': 'none',"
-        done
-    } > "$TMPFILE3"
-
-    # Anchor: insert after "deepinit: 'heavy'," line
-    sed -i "/^  deepinit: 'heavy',$/r $TMPFILE3" "$TEMPLATE_FILE"
-
-    if grep -q 'phase-resume' "$TEMPLATE_FILE"; then
-        info "Template hook patched successfully"
+    if grep -q 'phase-resume' "$file"; then
+        info "Patched: $file"
+        PATCHED=$((PATCHED + 1))
     else
-        error "Template hook patch failed"
+        warn "Patch may have failed: $file"
     fi
+done
+
+if [[ $PATCHED -eq 0 && $SKIPPED -gt 0 ]]; then
+    info "All $SKIPPED files already patched (or upstream fix landed)"
+elif [[ $PATCHED -gt 0 ]]; then
+    info "Patched $PATCHED file(s), $SKIPPED already done"
 fi
 
 # ==============================================================================
