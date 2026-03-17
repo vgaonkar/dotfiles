@@ -388,12 +388,14 @@ if (Test-Path $weztermConfig) {
 
         $additions = @"
 
--- Tailscale: SSH to Infinity (Mac)
--- Launch menu: right-click tab bar or Ctrl+Shift+P then "launcher"
+-- Tailscale: default to SSH into Mac (Claude Code)
+-- If Mac is offline, use launch menu for local shell: right-click tab bar or Ctrl+Shift+P
+config.default_prog = { 'ssh', 'infinity' }
+
 config.launch_menu = {
   { label = 'Claude Code (Infinity)', args = { 'ssh', 'infinity' } },
+  { label = 'PowerShell (local)',     args = { 'powershell.exe' } },
   { label = 'WSL (Ubuntu)',           args = { 'wsl.exe' } },
-  { label = 'PowerShell',            args = { 'powershell.exe' } },
 }
 
 "@
@@ -436,12 +438,14 @@ config.window_padding = { left = 4, right = 4, top = 4, bottom = 4 }
 config.scrollback_lines = 10000
 config.check_for_updates = false
 
--- Default shell -- WSL Ubuntu
-config.default_domain = 'WSL:Ubuntu'
+-- Default: SSH directly into Mac (Claude Code)
+-- If Mac is offline, use launch menu for local shell: right-click tab bar or Ctrl+Shift+P
+config.default_prog = { 'ssh', 'infinity' }
 
 -- Launch menu -- right-click tab bar or use Ctrl+Shift+P
 config.launch_menu = {
   { label = 'Claude Code (Infinity)', args = { 'ssh', 'infinity' } },
+  { label = 'PowerShell (local)',     args = { 'powershell.exe' } },
   { label = 'WSL (Ubuntu)',           args = { 'wsl.exe' } },
   { label = 'PowerShell',            args = { 'powershell.exe' } },
 }
