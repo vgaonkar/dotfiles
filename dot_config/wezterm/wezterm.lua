@@ -72,10 +72,13 @@ config.cursor_blink_rate    = 0
 config.scrollback_lines = 10000
 
 -- ── Default shell / domain ────────────────────────────────────────────────────
+-- On Windows: SSH to Mac via Tailscale (WSL removed, Mac is primary dev machine)
+-- On macOS: open local shell in ~/Development
 if target:find('windows') then
-  config.default_domain = 'WSL:Ubuntu'
+  config.default_prog = { 'ssh', 'infinity' }
+else
+  config.default_cwd = '~/Development'
 end
-config.default_cwd = '~/Development'
 
 -- ── Window chrome ─────────────────────────────────────────────────────────────
 config.hide_tab_bar_if_only_one_tab = true
