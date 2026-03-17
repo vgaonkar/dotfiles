@@ -386,6 +386,10 @@ if (Test-Path $weztermConfig) {
         Copy-Item $weztermConfig $backupPath
         Write-Host "  Backed up WezTerm config to $backupPath" -ForegroundColor Cyan
 
+        # Neutralize default_domain if present -- conflicts with default_prog on Windows host
+        # (default_domain makes default_prog run inside WSL instead of on the Windows host)
+        $content = $content -replace '(?m)^(config\.default_domain\s*=)', '-- $1'
+
         $additions = @"
 
 -- Tailscale: default to SSH into Mac (Claude Code)
@@ -447,7 +451,6 @@ config.launch_menu = {
   { label = 'Claude Code (Infinity)', args = { 'ssh', 'infinity' } },
   { label = 'PowerShell (local)',     args = { 'powershell.exe' } },
   { label = 'WSL (Ubuntu)',           args = { 'wsl.exe' } },
-  { label = 'PowerShell',            args = { 'powershell.exe' } },
 }
 
 -- Keybindings
