@@ -80,7 +80,9 @@ if ($weztermExe) {
         Write-Host "  Skipping WezTerm. You can install later from https://wezfurlong.org/wezterm/" -ForegroundColor Yellow
     } else {
         Write-Host "  Installing WezTerm..." -ForegroundColor Cyan
+        $ErrorActionPreference = "Continue"
         winget install --id wez.wezterm --accept-source-agreements --accept-package-agreements
+        $ErrorActionPreference = "Stop"
         if ($LASTEXITCODE -ne 0) {
             Write-Host "  WARNING: WezTerm install failed. Install manually from https://wezfurlong.org/wezterm/" -ForegroundColor Yellow
         } else {
@@ -104,15 +106,19 @@ if ($fontCheck) {
     $wingetFont = & winget search "JetBrainsMono" 2>&1
     $ErrorActionPreference = "Stop"
     if ($wingetFont -match "DEVCOM.JetBrainsMonoNerdFont") {
+        $ErrorActionPreference = "Continue"
         winget install --id DEVCOM.JetBrainsMonoNerdFont --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
+        $ErrorActionPreference = "Stop"
         if ($LASTEXITCODE -eq 0) { $fontInstalled = $true }
     }
     # Try oh-my-posh font install as fallback
     if (-not $fontInstalled) {
         $ompPath = Get-Command oh-my-posh -ErrorAction SilentlyContinue
         if ($ompPath) {
+            $ErrorActionPreference = "Continue"
             & oh-my-posh font install JetBrainsMono 2>&1 | Out-Null
-            $fontInstalled = $true
+            $ErrorActionPreference = "Stop"
+            if ($LASTEXITCODE -eq 0) { $fontInstalled = $true }
         }
     }
     if ($fontInstalled) {
@@ -190,7 +196,9 @@ if ($tsPath) {
         exit 1
     }
     Write-Host "  Installing Tailscale..." -ForegroundColor Cyan
+    $ErrorActionPreference = "Continue"
     winget install --id Tailscale.Tailscale --accept-source-agreements --accept-package-agreements
+    $ErrorActionPreference = "Stop"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  ERROR: Tailscale installation failed (exit code $LASTEXITCODE)." -ForegroundColor Red
         Write-Host "  Install manually from https://tailscale.com/download/windows" -ForegroundColor Yellow
