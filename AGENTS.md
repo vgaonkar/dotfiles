@@ -1,3 +1,4 @@
+<!-- Parent: ../AGENTS.md -->
 <!-- Generated: 2026-03-14 | Updated: 2026-03-14 -->
 
 # dotfiles
