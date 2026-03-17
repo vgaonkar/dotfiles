@@ -75,7 +75,7 @@ config.scrollback_lines = 10000
 if target:find('windows') then
   config.default_domain = 'WSL:Ubuntu'
 end
-config.default_cwd = '~/Projects'
+config.default_cwd = '~/Development'
 
 -- ── Window chrome ─────────────────────────────────────────────────────────────
 config.hide_tab_bar_if_only_one_tab = true

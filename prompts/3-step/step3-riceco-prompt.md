@@ -23,7 +23,7 @@ Examples:
   - "Fix the SSH keychain initialization to skip on CI environments"
 
 ---CONTEXT---
-Project: Chezmoi-based cross-platform dotfiles at /home/dev/Projects/dotfiles
+Project: Chezmoi-based cross-platform dotfiles at /Users/vijayg/Development/dotfiles
 Primary shell: Fish. Secondary: Zsh, Bash, PowerShell.
 Supported OS: darwin (arm64/amd64), linux, windows (partial).
 Template variables available: .chezmoi.os, .chezmoi.arch, .default_shell, .install_tools,

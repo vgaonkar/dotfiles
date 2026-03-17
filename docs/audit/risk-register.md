@@ -1,6 +1,6 @@
 # Risk Register -- dotfiles
 
-> **Audited:** 2026-03-06 | **Target:** /home/dev/Projects/dotfiles
+> **Audited:** 2026-03-06 | **Target:** /Users/vijayg/Development/dotfiles
 
 | # | Risk | Severity | Likelihood | Area | Mitigation | Status |
 |---|------|----------|------------|------|------------|--------|

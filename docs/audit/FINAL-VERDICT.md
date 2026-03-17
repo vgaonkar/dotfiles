@@ -1,6 +1,6 @@
 # Verification Verdict -- dotfiles (Re-Audit)
 
-> **Original Audit:** 2026-03-06 | **Re-Audit:** 2026-03-06 | **Target:** /home/dev/Projects/dotfiles (local) | **QA Cycles:** 4 (original) + 1 (re-audit) = 5
+> **Original Audit:** 2026-03-06 | **Re-Audit:** 2026-03-06 | **Target:** /Users/vijayg/Development/dotfiles (local) | **QA Cycles:** 4 (original) + 1 (re-audit) = 5
 
 ## Overall Verdict: GO
 

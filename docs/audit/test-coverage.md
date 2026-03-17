@@ -1,6 +1,6 @@
 # Test Coverage Audit -- dotfiles
 
-> **CLAUDE:** Scan `## Quick Reference` for key facts. Load full sections only when cross-referencing specific items. **Audited:** 2026-03-06 | **Target:** /home/dev/Projects/dotfiles | **Agent:** executor
+> **CLAUDE:** Scan `## Quick Reference` for key facts. Load full sections only when cross-referencing specific items. **Audited:** 2026-03-06 | **Target:** /Users/vijayg/Development/dotfiles | **Agent:** executor
 
 ---
 

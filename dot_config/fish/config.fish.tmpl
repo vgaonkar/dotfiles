@@ -32,9 +32,9 @@ end
 {{ if .work_machine -}}
 set -gx WORK_MACHINE true
 {{ end -}}
-# Start in ~/Projects when launched as a login shell from home
+# Start in ~/Development when launched as a login shell from home
 if status is-login; and test "$PWD" = "$HOME"
-    cd ~/Projects
+    cd ~/Development
 end
 
 # Interactive shell configuration

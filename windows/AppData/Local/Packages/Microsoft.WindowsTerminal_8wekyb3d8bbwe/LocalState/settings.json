@@ -113,7 +113,7 @@
                 "name": "Ubuntu",
                 "opacity": 0,
                 "source": "Windows.Terminal.Wsl",
-                "startingDirectory": "~/Projects",
+                "startingDirectory": "~/Development",
                 "useAcrylic": true
             },
             {

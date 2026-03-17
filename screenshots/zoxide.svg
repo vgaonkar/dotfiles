@@ -18,9 +18,9 @@
   <text x="20" y="130" fill="#a5adcb"> score  │ path</text>
   <text x="20" y="150" fill="#494d64">────────┼──────────────────────────────</text>
   <text x="20" y="170" fill="#a5adcb">  120.5 │ </text>
-  <text x="104.0" y="170" fill="#8aadf4">/home/dev/Projects/dotfiles</text>
+  <text x="104.0" y="170" fill="#8aadf4">/Users/vijayg/Development/dotfiles</text>
   <text x="20" y="190" fill="#a5adcb">   85.2 │ </text>
-  <text x="104.0" y="190" fill="#8aadf4">/home/dev/Projects/dotfiles/dot_config</text>
+  <text x="104.0" y="190" fill="#8aadf4">/Users/vijayg/Development/dotfiles/dot_config</text>
   <text x="20" y="210" fill="#a5adcb">   42.0 │ </text>
   <text x="104.0" y="210" fill="#8aadf4">/home/dev/.config</text>
   <text x="20" y="230" fill="#a5adcb">   18.7 │ </text>

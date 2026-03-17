@@ -101,7 +101,7 @@ fi
 # Phase 2: Clean up stale skill-active-state.json files
 # ==============================================================================
 info "Cleaning up stale skill state files..."
-STALE_COUNT=$(find /home/dev/Projects -name "skill-active-state.json" -print -delete 2>/dev/null | wc -l)
+STALE_COUNT=$(find /Users/vijayg/Development -name "skill-active-state.json" -print -delete 2>/dev/null | wc -l)
 if [[ $STALE_COUNT -gt 0 ]]; then
     info "Deleted $STALE_COUNT stale skill-active-state.json file(s)"
 else
