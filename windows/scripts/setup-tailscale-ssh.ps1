@@ -350,7 +350,16 @@ if (Test-Path $sshConfig) {
     $existing = Get-Content $sshConfig -Raw
     # Use regex with line anchor to avoid substring false matches
     if ($existing -match '(?m)^Host\s+infinity\s*$') {
-        Write-Host "  SSH config already has infinity entry - skipping" -ForegroundColor Green
+        # Remove old infinity block(s) and replace with updated config
+        # Strip everything from "# --- Tailscale:" to the next blank-line-then-Host or EOF
+        $cleaned = $existing -replace '(?ms)\r?\n?# --- Tailscale: Remote Claude Code on Infinity.*?(?=\r?\n\r?\n(?!Host\s+(infinity|infinity-plain)\b)|$)', ''
+        # Also remove any standalone infinity/infinity-plain/FQDN host blocks
+        $cleaned = $cleaned -replace '(?ms)\r?\nHost\s+infinity\s*\r?\n.*?(?=\r?\nHost\s|\z)', ''
+        $cleaned = $cleaned -replace '(?ms)\r?\nHost\s+infinity-plain\s*\r?\n.*?(?=\r?\nHost\s|\z)', ''
+        $cleaned = $cleaned -replace "(?ms)\r?\nHost\s+$([regex]::Escape($InfinityDNS))\s*\r?\n.*?(?=\r?\nHost\s|\z)", ''
+        $newContent = $cleaned.TrimEnd() + "`n" + $infinityBlock + "`n"
+        Write-UTF8 -Path $sshConfig -Content $newContent
+        Write-Host "  Updated infinity SSH config (replaced old entry)" -ForegroundColor Green
     } else {
         # Append using UTF-8 without BOM
         $newContent = $existing.TrimEnd() + "`n" + $infinityBlock + "`n"
