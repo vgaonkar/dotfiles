@@ -318,19 +318,7 @@ Host infinity
   ServerAliveCountMax 6
   Compression yes
   RequestTTY yes
-  RemoteCommand cd ~/Development/Projects && tmux attach -t claude 2>/dev/null || tmux new -s claude -c ~/Development/Projects
-
-# Plain SSH (no auto-tmux) — for file transfers, one-off commands
-Host infinity-plain
-  HostName $InfinityIP
-  User $InfinityUser
-  IdentityFile ~/.ssh/id_ed25519
-  IdentitiesOnly yes
-  PreferredAuthentications publickey
-  ForwardAgent no
-  ServerAliveInterval 30
-  ServerAliveCountMax 6
-  Compression yes
+  RemoteCommand cd ~/Development/Projects && exec `$SHELL -l
 
 Host $InfinityDNS
   HostName $InfinityDNS
@@ -343,7 +331,7 @@ Host $InfinityDNS
   ServerAliveCountMax 6
   Compression yes
   RequestTTY yes
-  RemoteCommand cd ~/Development/Projects && tmux attach -t claude 2>/dev/null || tmux new -s claude -c ~/Development/Projects
+  RemoteCommand cd ~/Development/Projects && exec `$SHELL -l
 "@
 
 if (Test-Path $sshConfig) {
