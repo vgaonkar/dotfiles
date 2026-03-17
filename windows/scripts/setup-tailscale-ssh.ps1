@@ -100,7 +100,9 @@ if ($fontCheck) {
     Write-Host "  Installing JetBrainsMono Nerd Font (used by WezTerm config)..." -ForegroundColor Cyan
     $fontInstalled = $false
     # Try winget first (cleanest)
+    $ErrorActionPreference = "Continue"
     $wingetFont = & winget search "JetBrainsMono" 2>&1
+    $ErrorActionPreference = "Stop"
     if ($wingetFont -match "DEVCOM.JetBrainsMonoNerdFont") {
         winget install --id DEVCOM.JetBrainsMonoNerdFont --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) { $fontInstalled = $true }
@@ -215,7 +217,9 @@ if (-not (Get-Command tailscale -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+$ErrorActionPreference = "Continue"
 $status = & tailscale status 2>&1
+$ErrorActionPreference = "Stop"
 if ($LASTEXITCODE -ne 0 -or $status -match "Logged out|NeedsLogin|stopped") {
     Write-Host "  Tailscale is not connected. Opening login..." -ForegroundColor Cyan
     & tailscale up
@@ -230,9 +234,14 @@ if ($LASTEXITCODE -ne 0 -or $status -match "Logged out|NeedsLogin|stopped") {
 
 # Verify connectivity
 Write-Host "  Testing connection to Infinity..." -ForegroundColor Cyan
-& tailscale ping -c 1 $InfinityDNS 2>&1 | Out-Null
-if ($LASTEXITCODE -eq 0) {
+$ErrorActionPreference = "Continue"  # ping returns non-zero for relay connections -- not a real error
+$pingResult = & tailscale ping -c 1 $InfinityDNS 2>&1
+$ErrorActionPreference = "Stop"
+if ("$pingResult" -match "pong") {
     Write-Host "  Connected to Infinity!" -ForegroundColor Green
+    if ("$pingResult" -match "via DERP") {
+        Write-Host "  (via relay -- direct connection may establish over time)" -ForegroundColor DarkGray
+    }
 } else {
     Write-Host "  WARNING: Cannot reach Infinity. It may be offline." -ForegroundColor Red
     Write-Host "  Continuing setup - you can test later." -ForegroundColor Yellow
@@ -271,7 +280,9 @@ Write-Host ""
 # Pipe key via stdin to avoid shell injection -- never interpolate key into command string
 $pubKeyContent = Get-Content "$keyFile.pub" -Raw
 $remoteCmd = "mkdir -p ~/.ssh && chmod 700 ~/.ssh && key=`$(cat) && grep -qxF `"`$key`" ~/.ssh/authorized_keys 2>/dev/null || echo `"`$key`" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo 'Key configured successfully'"
+$ErrorActionPreference = "Continue"
 $pubKeyContent | & ssh -o StrictHostKeyChecking=accept-new "${InfinityUser}@${InfinityIP}" $remoteCmd
+$ErrorActionPreference = "Stop"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "  SSH key deployed to Infinity!" -ForegroundColor Green
@@ -331,7 +342,9 @@ if (Test-Path $sshConfig) {
 Write-Host ""
 Write-Host "[6/8] Testing SSH connection..." -ForegroundColor Yellow
 
+$ErrorActionPreference = "Continue"
 $testResult = & ssh -o ConnectTimeout=5 -o BatchMode=yes infinity "echo SSH_OK" 2>&1
+$ErrorActionPreference = "Stop"
 if ("$testResult" -match "SSH_OK") {
     Write-Host "  SSH to Infinity works!" -ForegroundColor Green
 } else {
@@ -448,14 +461,18 @@ Write-Host "[8/8] Checking mosh in WSL..." -ForegroundColor Yellow
 
 $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
 if ($wslAvailable) {
+    $ErrorActionPreference = "Continue"
     $moshCheck = & wsl -- which mosh 2>&1
+    $ErrorActionPreference = "Stop"
     if ($moshCheck -match "/mosh") {
         Write-Host "  mosh already installed in WSL." -ForegroundColor Green
     } else {
         $response = Read-Host "  mosh not found in WSL. Install for resilient SSH sessions? [Y/n]"
         if ($response -notmatch '^[Nn]') {
             Write-Host "  Installing mosh in WSL..." -ForegroundColor Cyan
+            $ErrorActionPreference = "Continue"
             & wsl -- sudo apt-get update -qq "&&" sudo apt-get install -y -qq mosh 2>&1 | Out-Null
+            $ErrorActionPreference = "Stop"
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "  mosh installed in WSL." -ForegroundColor Green
             } else {
