@@ -102,6 +102,13 @@ if ($tsPath) {
 Write-Host ""
 Write-Host "[2/6] Checking Tailscale connection..." -ForegroundColor Yellow
 
+# Guard: verify tailscale is in PATH before calling it (fresh install may need terminal restart)
+if (-not (Get-Command tailscale -ErrorAction SilentlyContinue)) {
+    Write-Host "  ERROR: 'tailscale' is not in PATH." -ForegroundColor Red
+    Write-Host "  Close this terminal, open a new one, and re-run this script." -ForegroundColor Yellow
+    exit 1
+}
+
 $status = & tailscale status 2>&1
 if ($LASTEXITCODE -ne 0 -or $status -match "Logged out|NeedsLogin|stopped") {
     Write-Host "  Tailscale is not connected. Opening login..." -ForegroundColor Cyan
