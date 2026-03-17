@@ -54,7 +54,7 @@ if (-not $sshCmd) {
 }
 
 # -- Step 1: Install WezTerm --------------------------------------------------
-Write-Host "[1/8] Checking WezTerm..." -ForegroundColor Yellow
+Write-Host "[1/9] Checking WezTerm..." -ForegroundColor Yellow
 
 $weztermExe = Get-Command wezterm -ErrorAction SilentlyContinue
 if (-not $weztermExe) {
@@ -168,7 +168,7 @@ if ($dotfilesConfig -and -not (Test-Path $weztermConfig)) {
 
 # -- Step 2: Install Tailscale ------------------------------------------------
 Write-Host ""
-Write-Host "[2/8] Checking Tailscale..." -ForegroundColor Yellow
+Write-Host "[2/9] Checking Tailscale..." -ForegroundColor Yellow
 
 $tsPath = Get-Command tailscale -ErrorAction SilentlyContinue
 if (-not $tsPath) {
@@ -216,7 +216,7 @@ if ($tsPath) {
 
 # -- Step 3: Check Tailscale login --------------------------------------------
 Write-Host ""
-Write-Host "[3/8] Checking Tailscale connection..." -ForegroundColor Yellow
+Write-Host "[3/9] Checking Tailscale connection..." -ForegroundColor Yellow
 
 # Guard: verify tailscale is in PATH before calling it (fresh install may need terminal restart)
 if (-not (Get-Command tailscale -ErrorAction SilentlyContinue)) {
@@ -257,7 +257,7 @@ if ("$pingResult" -match "pong") {
 
 # -- Step 4: Generate SSH key -------------------------------------------------
 Write-Host ""
-Write-Host "[4/8] Setting up SSH key..." -ForegroundColor Yellow
+Write-Host "[4/9] Setting up SSH key..." -ForegroundColor Yellow
 
 $sshDir = "$env:USERPROFILE\.ssh"
 $keyFile = "$sshDir\id_ed25519"
@@ -301,7 +301,7 @@ if ($LASTEXITCODE -eq 0) {
 
 # -- Step 5: Create SSH config ------------------------------------------------
 Write-Host ""
-Write-Host "[5/8] Configuring SSH..." -ForegroundColor Yellow
+Write-Host "[5/9] Configuring SSH..." -ForegroundColor Yellow
 
 $sshConfig = "$sshDir\config"
 $infinityBlock = @"
@@ -348,7 +348,7 @@ if (Test-Path $sshConfig) {
 
 # -- Step 6: Test SSH connection ----------------------------------------------
 Write-Host ""
-Write-Host "[6/8] Testing SSH connection..." -ForegroundColor Yellow
+Write-Host "[6/9] Testing SSH connection..." -ForegroundColor Yellow
 
 $ErrorActionPreference = "Continue"
 $testResult = & ssh -o ConnectTimeout=5 -o BatchMode=yes infinity "echo SSH_OK" 2>&1
@@ -365,7 +365,7 @@ if ("$testResult" -match "SSH_OK") {
 
 # -- Step 7: Configure WezTerm ------------------------------------------------
 Write-Host ""
-Write-Host "[7/8] Configuring WezTerm..." -ForegroundColor Yellow
+Write-Host "[7/9] Configuring WezTerm..." -ForegroundColor Yellow
 
 $weztermConfig = "$env:USERPROFILE\.config\wezterm\wezterm.lua"
 
@@ -472,7 +472,7 @@ return config
 
 # -- Step 8: Install mosh in WSL (optional) -----------------------------------
 Write-Host ""
-Write-Host "[8/8] Checking mosh in WSL..." -ForegroundColor Yellow
+Write-Host "[8/9] Checking mosh in WSL..." -ForegroundColor Yellow
 
 $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
 if ($wslAvailable) {
@@ -501,6 +501,56 @@ if ($wslAvailable) {
     Write-Host "  WSL not available - skipping mosh install." -ForegroundColor Yellow
     Write-Host "  mosh is optional -- SSH works without it." -ForegroundColor White
 }
+
+# -- Step 9: Create remote cleanup shortcut ------------------------------------
+Write-Host ""
+Write-Host "[9/9] Creating remote cleanup shortcut..." -ForegroundColor Yellow
+
+# Create a local script that SSHs into Infinity and runs the OMC cleanup
+$cleanupDir = "$env:USERPROFILE\.local\bin"
+if (-not (Test-Path $cleanupDir)) {
+    New-Item -ItemType Directory -Force -Path $cleanupDir | Out-Null
+}
+
+$cleanupScript = "$cleanupDir\omc-cleanup.ps1"
+$cleanupContent = @"
+# omc-cleanup.ps1 — Clean stale OMC state on Infinity (Mac) after disconnect
+# Run this if Claude Code behaves erratically after closing WezTerm without detaching.
+#
+# Usage:
+#   .\omc-cleanup.ps1           # clean and report
+#   .\omc-cleanup.ps1 -Connect  # clean then SSH into tmux session
+param([switch]`$Connect)
+
+`$InfinityHost = "infinity"
+
+Write-Host "Cleaning OMC state on Infinity..." -ForegroundColor Cyan
+ssh `$InfinityHost "~/.local/bin/omc-session-cleanup.sh"
+
+if (`$LASTEXITCODE -eq 0) {
+    Write-Host "Cleanup complete." -ForegroundColor Green
+} else {
+    Write-Host "WARNING: Cleanup may have failed (exit `$LASTEXITCODE)" -ForegroundColor Yellow
+}
+
+if (`$Connect) {
+    Write-Host "Connecting to Claude Code session..." -ForegroundColor Cyan
+    ssh -t `$InfinityHost "tmux attach -t claude 2>/dev/null || tmux new -s claude"
+}
+"@
+Write-UTF8 -Path $cleanupScript -Content $cleanupContent
+
+# Add to PATH if not already there
+$userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+if ($userPath -notmatch [regex]::Escape($cleanupDir)) {
+    [System.Environment]::SetEnvironmentVariable("Path", "$userPath;$cleanupDir", "User")
+    $env:Path += ";$cleanupDir"
+    Write-Host "  Added $cleanupDir to user PATH" -ForegroundColor Green
+}
+
+Write-Host "  Created $cleanupScript" -ForegroundColor Green
+Write-Host "  Usage: omc-cleanup           (clean stale state)" -ForegroundColor White
+Write-Host "         omc-cleanup -Connect  (clean + reconnect)" -ForegroundColor White
 
 # -- Done ---------------------------------------------------------------------
 Write-Host ""
