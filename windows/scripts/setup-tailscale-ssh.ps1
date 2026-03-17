@@ -1,5 +1,5 @@
 # setup-tailscale-ssh.ps1
-# Sets up Tailscale + SSH to Infinity (Mac) from Windows.
+# Sets up Tailscale + WezTerm + SSH to Infinity (Mac) from Windows.
 # Run from PowerShell (Administrator recommended for winget):
 #   .\setup-tailscale-ssh.ps1
 #
@@ -53,8 +53,114 @@ if (-not $sshCmd) {
     }
 }
 
-# ── Step 1: Install Tailscale ────────────────────────────────────────────────
-Write-Host "[1/6] Checking Tailscale..." -ForegroundColor Yellow
+# ── Step 1: Install WezTerm ──────────────────────────────────────────────────
+Write-Host "[1/8] Checking WezTerm..." -ForegroundColor Yellow
+
+$weztermExe = Get-Command wezterm -ErrorAction SilentlyContinue
+if (-not $weztermExe) {
+    # Check known install locations
+    $weztermPaths = @(
+        "${env:ProgramFiles}\WezTerm\wezterm.exe",
+        "${env:ProgramFiles(x86)}\WezTerm\wezterm.exe",
+        "${env:LOCALAPPDATA}\Programs\WezTerm\wezterm.exe"
+    )
+    foreach ($p in $weztermPaths) {
+        if (Test-Path $p) {
+            $weztermExe = $p
+            break
+        }
+    }
+}
+
+if ($weztermExe) {
+    Write-Host "  WezTerm already installed." -ForegroundColor Green
+} else {
+    $response = Read-Host "  WezTerm not found. Install via winget? [Y/n]"
+    if ($response -match '^[Nn]') {
+        Write-Host "  Skipping WezTerm. You can install later from https://wezfurlong.org/wezterm/" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Installing WezTerm..." -ForegroundColor Cyan
+        winget install --id wez.wezterm --accept-source-agreements --accept-package-agreements
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  WARNING: WezTerm install failed. Install manually from https://wezfurlong.org/wezterm/" -ForegroundColor Yellow
+        } else {
+            Write-Host "  WezTerm installed." -ForegroundColor Green
+        }
+    }
+}
+
+# Install JetBrainsMono Nerd Font (required by wezterm.lua config)
+$fontCheck = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Windows\Fonts\JetBrains*Nerd*" -ErrorAction SilentlyContinue
+if (-not $fontCheck) {
+    $fontCheck = Get-ChildItem "$env:WINDIR\Fonts\JetBrains*Nerd*" -ErrorAction SilentlyContinue
+}
+if ($fontCheck) {
+    Write-Host "  JetBrainsMono Nerd Font already installed." -ForegroundColor Green
+} else {
+    Write-Host "  Installing JetBrainsMono Nerd Font (used by WezTerm config)..." -ForegroundColor Cyan
+    $fontInstalled = $false
+    # Try winget first (cleanest)
+    $wingetFont = & winget search "JetBrainsMono" 2>&1
+    if ($wingetFont -match "DEVCOM.JetBrainsMonoNerdFont") {
+        winget install --id DEVCOM.JetBrainsMonoNerdFont --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { $fontInstalled = $true }
+    }
+    # Try oh-my-posh font install as fallback
+    if (-not $fontInstalled) {
+        $ompPath = Get-Command oh-my-posh -ErrorAction SilentlyContinue
+        if ($ompPath) {
+            & oh-my-posh font install JetBrainsMono 2>&1 | Out-Null
+            $fontInstalled = $true
+        }
+    }
+    if ($fontInstalled) {
+        Write-Host "  JetBrainsMono Nerd Font installed." -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: Could not auto-install font. Download manually:" -ForegroundColor Yellow
+        Write-Host "  https://github.com/ryanoasis/nerd-fonts/releases/latest" -ForegroundColor White
+        Write-Host "  Search for JetBrainsMono.zip, extract and install .ttf files." -ForegroundColor White
+    }
+}
+
+# Deploy wezterm.lua from dotfiles (the cross-platform config with Tango Dark theme, etc.)
+$weztermConfigDir = "$env:USERPROFILE\.config\wezterm"
+if (-not (Test-Path $weztermConfigDir)) {
+    New-Item -ItemType Directory -Force -Path $weztermConfigDir | Out-Null
+}
+
+$weztermConfig = "$weztermConfigDir\wezterm.lua"
+$dotfilesConfig = $null
+# Check WSL dotfiles (chezmoi source)
+$wslPaths = @(
+    "\\wsl.localhost\Ubuntu\home\$InfinityUser\.config\wezterm\wezterm.lua",
+    "\\wsl.localhost\Ubuntu\home\dev\.config\wezterm\wezterm.lua"
+)
+foreach ($p in $wslPaths) {
+    if (Test-Path $p) { $dotfilesConfig = $p; break }
+}
+# Check local dotfiles clone
+if (-not $dotfilesConfig) {
+    $localPaths = @(
+        "$env:USERPROFILE\dotfiles\dot_config\wezterm\wezterm.lua",
+        "$env:USERPROFILE\Development\dotfiles\dot_config\wezterm\wezterm.lua"
+    )
+    foreach ($p in $localPaths) {
+        if (Test-Path $p) { $dotfilesConfig = $p; break }
+    }
+}
+
+if ($dotfilesConfig -and -not (Test-Path $weztermConfig)) {
+    Copy-Item $dotfilesConfig $weztermConfig -Force
+    Write-Host "  Deployed wezterm.lua from dotfiles (Tango Dark, JetBrainsMono, acrylic)" -ForegroundColor Green
+} elseif ($dotfilesConfig -and (Test-Path $weztermConfig)) {
+    Write-Host "  WezTerm config already exists - keeping current config" -ForegroundColor Green
+} elseif (-not $dotfilesConfig) {
+    Write-Host "  Dotfiles wezterm.lua not found. Will create minimal config in Step 7." -ForegroundColor Yellow
+}
+
+# ── Step 2: Install Tailscale ────────────────────────────────────────────────
+Write-Host ""
+Write-Host "[2/8] Checking Tailscale..." -ForegroundColor Yellow
 
 $tsPath = Get-Command tailscale -ErrorAction SilentlyContinue
 if (-not $tsPath) {
@@ -98,9 +204,9 @@ if ($tsPath) {
     }
 }
 
-# ── Step 2: Check Tailscale login ────────────────────────────────────────────
+# ── Step 3: Check Tailscale login ────────────────────────────────────────────
 Write-Host ""
-Write-Host "[2/6] Checking Tailscale connection..." -ForegroundColor Yellow
+Write-Host "[3/8] Checking Tailscale connection..." -ForegroundColor Yellow
 
 # Guard: verify tailscale is in PATH before calling it (fresh install may need terminal restart)
 if (-not (Get-Command tailscale -ErrorAction SilentlyContinue)) {
@@ -132,9 +238,9 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "  Continuing setup - you can test later." -ForegroundColor Yellow
 }
 
-# ── Step 3: Generate SSH key ─────────────────────────────────────────────────
+# ── Step 4: Generate SSH key ─────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[3/6] Setting up SSH key..." -ForegroundColor Yellow
+Write-Host "[4/8] Setting up SSH key..." -ForegroundColor Yellow
 
 $sshDir = "$env:USERPROFILE\.ssh"
 $keyFile = "$sshDir\id_ed25519"
@@ -174,9 +280,9 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "  Manually copy contents of $keyFile.pub to ~/.ssh/authorized_keys on your Mac." -ForegroundColor Yellow
 }
 
-# ── Step 4: Create SSH config ────────────────────────────────────────────────
+# ── Step 5: Create SSH config ────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[4/6] Configuring SSH..." -ForegroundColor Yellow
+Write-Host "[5/8] Configuring SSH..." -ForegroundColor Yellow
 
 $sshConfig = "$sshDir\config"
 $infinityBlock = @"
@@ -221,9 +327,9 @@ if (Test-Path $sshConfig) {
     Write-Host "  Created $sshConfig with infinity entry" -ForegroundColor Green
 }
 
-# ── Step 5: Test SSH connection ──────────────────────────────────────────────
+# ── Step 6: Test SSH connection ──────────────────────────────────────────────
 Write-Host ""
-Write-Host "[5/6] Testing SSH connection..." -ForegroundColor Yellow
+Write-Host "[6/8] Testing SSH connection..." -ForegroundColor Yellow
 
 $testResult = & ssh -o ConnectTimeout=5 -o BatchMode=yes infinity "echo SSH_OK" 2>&1
 if ("$testResult" -match "SSH_OK") {
@@ -236,9 +342,9 @@ if ("$testResult" -match "SSH_OK") {
     Write-Host "    3. Run: ssh -v infinity" -ForegroundColor White
 }
 
-# ── Step 6: Configure WezTerm ────────────────────────────────────────────────
+# ── Step 7: Configure WezTerm ────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[6/6] Configuring WezTerm..." -ForegroundColor Yellow
+Write-Host "[7/8] Configuring WezTerm..." -ForegroundColor Yellow
 
 $weztermConfig = "$env:USERPROFILE\.config\wezterm\wezterm.lua"
 
@@ -282,8 +388,86 @@ config.launch_menu = {
         }
     }
 } else {
-    Write-Host "  WezTerm config not found at $weztermConfig" -ForegroundColor Yellow
-    Write-Host "  Run chezmoi apply in WSL first, or run install-wezterm.ps1" -ForegroundColor Yellow
+    # No WezTerm config exists — create a minimal one optimized for SSH to Infinity
+    Write-Host "  No WezTerm config found. Creating one optimized for remote access..." -ForegroundColor Cyan
+
+    $minimalConfig = @"
+-- WezTerm configuration — optimized for remote Claude Code access
+local wezterm = require 'wezterm'
+local config  = wezterm.config_builder()
+local act     = wezterm.action
+
+-- Font
+config.font      = wezterm.font('JetBrainsMono Nerd Font Mono', { weight = 'Regular' })
+config.font_size = 12.0
+
+-- Colors
+config.color_scheme = 'Tango (terminal.sexy)'
+config.window_background_opacity = 0.85
+
+-- Cursor
+config.default_cursor_style = 'SteadyBlock'
+
+-- Window
+config.hide_tab_bar_if_only_one_tab = true
+config.window_decorations = 'TITLE | RESIZE'
+config.window_padding = { left = 4, right = 4, top = 4, bottom = 4 }
+config.scrollback_lines = 10000
+config.check_for_updates = false
+
+-- Default shell — WSL Ubuntu
+config.default_domain = 'WSL:Ubuntu'
+
+-- Launch menu — right-click tab bar or use Ctrl+Shift+P
+config.launch_menu = {
+  { label = 'Claude Code (Infinity)', args = { 'ssh', 'infinity' } },
+  { label = 'WSL (Ubuntu)',           args = { 'wsl.exe' } },
+  { label = 'PowerShell',            args = { 'powershell.exe' } },
+}
+
+-- Keybindings
+config.keys = {
+  { key = 'c', mods = 'CTRL|SHIFT', action = act.CopyTo 'Clipboard' },
+  { key = 'v', mods = 'CTRL',       action = act.PasteFrom 'Clipboard' },
+  { key = 'f', mods = 'CTRL|SHIFT', action = act.Search { CaseSensitiveString = '' } },
+  { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnTab 'CurrentPaneDomain' },
+  { key = 'w', mods = 'CTRL|SHIFT', action = act.CloseCurrentTab { confirm = true } },
+  { key = 'p', mods = 'CTRL|SHIFT', action = act.ActivateCommandPalette },
+}
+
+return config
+"@
+    New-Item -ItemType Directory -Force -Path $weztermConfigDir | Out-Null
+    Write-UTF8 -Path $weztermConfig -Content $minimalConfig
+    Write-Host "  Created WezTerm config with Infinity launch menu at $weztermConfig" -ForegroundColor Green
+}
+
+# ── Step 8: Install mosh in WSL (optional) ───────────────────────────────────
+Write-Host ""
+Write-Host "[8/8] Checking mosh in WSL..." -ForegroundColor Yellow
+
+$wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
+if ($wslAvailable) {
+    $moshCheck = & wsl -- which mosh 2>&1
+    if ($moshCheck -match "/mosh") {
+        Write-Host "  mosh already installed in WSL." -ForegroundColor Green
+    } else {
+        $response = Read-Host "  mosh not found in WSL. Install for resilient SSH sessions? [Y/n]"
+        if ($response -notmatch '^[Nn]') {
+            Write-Host "  Installing mosh in WSL..." -ForegroundColor Cyan
+            & wsl -- sudo apt-get update -qq "&&" sudo apt-get install -y -qq mosh 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  mosh installed in WSL." -ForegroundColor Green
+            } else {
+                Write-Host "  WARNING: mosh install failed. Run manually: wsl sudo apt install mosh" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  Skipping mosh. Install later: wsl sudo apt install mosh" -ForegroundColor Yellow
+        }
+    }
+} else {
+    Write-Host "  WSL not available - skipping mosh install." -ForegroundColor Yellow
+    Write-Host "  mosh is optional — SSH works without it." -ForegroundColor White
 }
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -292,15 +476,18 @@ Write-Host "============================================" -ForegroundColor Green
 Write-Host "  Setup Complete!                           " -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Usage:" -ForegroundColor Cyan
-Write-Host "    ssh infinity          Connect to Mac (plain shell)" -ForegroundColor White
-Write-Host "    ssh -t infinity       Connect + auto-attach tmux" -ForegroundColor White
+Write-Host "  Connect to your Mac:" -ForegroundColor Cyan
+Write-Host "    ssh infinity                    Plain SSH" -ForegroundColor White
+Write-Host "    ssh -t infinity                 SSH + auto-attach tmux" -ForegroundColor White
+Write-Host "    mosh $InfinityUser@$InfinityDNS -- tmux a -t claude" -ForegroundColor White
+Write-Host "                                    Resilient session (from WSL)" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  WezTerm:" -ForegroundColor Cyan
-Write-Host "    Launch menu entry:    'Claude Code (Infinity)'" -ForegroundColor White
-Write-Host "    Or just type:         ssh infinity" -ForegroundColor White
+Write-Host "    Launch menu:  'Claude Code (Infinity)'" -ForegroundColor White
+Write-Host "    Or just type: ssh infinity" -ForegroundColor White
 Write-Host ""
 Write-Host "  Tailscale:" -ForegroundColor Cyan
-Write-Host "    tailscale status           Check all devices" -ForegroundColor White
-Write-Host "    tailscale ping $InfinityDNS   Test connectivity" -ForegroundColor White
+Write-Host "    tailscale status                Check all devices" -ForegroundColor White
+Write-Host "    tailscale ping $InfinityDNS     Test connectivity" -ForegroundColor White
+Write-Host "    tailscale up --exit-node=infinity  Route traffic through home (public Wi-Fi)" -ForegroundColor White
 Write-Host ""
