@@ -3,7 +3,7 @@
 # Run from PowerShell (Administrator recommended for winget):
 #   .\setup-tailscale-ssh.ps1
 #
-# Safe to re-run — all steps are idempotent.
+# Safe to re-run -- all steps are idempotent.
 
 $ErrorActionPreference = "Stop"
 
@@ -11,11 +11,11 @@ $InfinityIP   = "100.121.147.56"
 $InfinityUser = "vijayg"
 $InfinityDNS  = "infinity.cinnebar-alhena.ts.net"
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# -- Helpers ------------------------------------------------------------------
 
 function Write-UTF8 {
     param([string]$Path, [string]$Content)
-    # Avoid UTF-16 BOM that PowerShell 5 Set-Content writes — OpenSSH rejects BOM
+    # Avoid UTF-16 BOM that PowerShell 5 Set-Content writes -- OpenSSH rejects BOM
     [System.IO.File]::WriteAllText($Path, $Content, [System.Text.UTF8Encoding]::new($false))
 }
 
@@ -25,7 +25,7 @@ function Test-Admin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-# ── Pre-flight checks ────────────────────────────────────────────────────────
+# -- Pre-flight checks --------------------------------------------------------
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
@@ -53,7 +53,7 @@ if (-not $sshCmd) {
     }
 }
 
-# ── Step 1: Install WezTerm ──────────────────────────────────────────────────
+# -- Step 1: Install WezTerm --------------------------------------------------
 Write-Host "[1/8] Checking WezTerm..." -ForegroundColor Yellow
 
 $weztermExe = Get-Command wezterm -ErrorAction SilentlyContinue
@@ -158,7 +158,7 @@ if ($dotfilesConfig -and -not (Test-Path $weztermConfig)) {
     Write-Host "  Dotfiles wezterm.lua not found. Will create minimal config in Step 7." -ForegroundColor Yellow
 }
 
-# ── Step 2: Install Tailscale ────────────────────────────────────────────────
+# -- Step 2: Install Tailscale ------------------------------------------------
 Write-Host ""
 Write-Host "[2/8] Checking Tailscale..." -ForegroundColor Yellow
 
@@ -204,7 +204,7 @@ if ($tsPath) {
     }
 }
 
-# ── Step 3: Check Tailscale login ────────────────────────────────────────────
+# -- Step 3: Check Tailscale login --------------------------------------------
 Write-Host ""
 Write-Host "[3/8] Checking Tailscale connection..." -ForegroundColor Yellow
 
@@ -238,7 +238,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "  Continuing setup - you can test later." -ForegroundColor Yellow
 }
 
-# ── Step 4: Generate SSH key ─────────────────────────────────────────────────
+# -- Step 4: Generate SSH key -------------------------------------------------
 Write-Host ""
 Write-Host "[4/8] Setting up SSH key..." -ForegroundColor Yellow
 
@@ -253,7 +253,7 @@ if (Test-Path "$keyFile.pub") {
     Write-Host "  SSH key already exists at $keyFile" -ForegroundColor Green
 } else {
     Write-Host "  Generating new SSH key..." -ForegroundColor Cyan
-    # Use empty string for passphrase — double quotes in PS pass empty string correctly
+    # Use empty string for passphrase -- double quotes in PS pass empty string correctly
     ssh-keygen -t ed25519 -C "$env:COMPUTERNAME" -f "$keyFile" -N ""
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  ERROR: ssh-keygen failed." -ForegroundColor Red
@@ -262,13 +262,13 @@ if (Test-Path "$keyFile.pub") {
     Write-Host "  Key generated at $keyFile" -ForegroundColor Green
 }
 
-# Copy public key to Infinity (idempotent — checks for duplicates)
+# Copy public key to Infinity (idempotent -- checks for duplicates)
 Write-Host ""
 Write-Host "  Copying public key to Infinity..." -ForegroundColor Cyan
 Write-Host "  You may be prompted for your Mac password (one time only)." -ForegroundColor Yellow
 Write-Host ""
 
-# Pipe key via stdin to avoid shell injection — never interpolate key into command string
+# Pipe key via stdin to avoid shell injection -- never interpolate key into command string
 $pubKeyContent = Get-Content "$keyFile.pub" -Raw
 $remoteCmd = "mkdir -p ~/.ssh && chmod 700 ~/.ssh && key=`$(cat) && grep -qxF `"`$key`" ~/.ssh/authorized_keys 2>/dev/null || echo `"`$key`" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo 'Key configured successfully'"
 $pubKeyContent | & ssh -o StrictHostKeyChecking=accept-new "${InfinityUser}@${InfinityIP}" $remoteCmd
@@ -280,7 +280,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "  Manually copy contents of $keyFile.pub to ~/.ssh/authorized_keys on your Mac." -ForegroundColor Yellow
 }
 
-# ── Step 5: Create SSH config ────────────────────────────────────────────────
+# -- Step 5: Create SSH config ------------------------------------------------
 Write-Host ""
 Write-Host "[5/8] Configuring SSH..." -ForegroundColor Yellow
 
@@ -327,7 +327,7 @@ if (Test-Path $sshConfig) {
     Write-Host "  Created $sshConfig with infinity entry" -ForegroundColor Green
 }
 
-# ── Step 6: Test SSH connection ──────────────────────────────────────────────
+# -- Step 6: Test SSH connection ----------------------------------------------
 Write-Host ""
 Write-Host "[6/8] Testing SSH connection..." -ForegroundColor Yellow
 
@@ -342,7 +342,7 @@ if ("$testResult" -match "SSH_OK") {
     Write-Host "    3. Run: ssh -v infinity" -ForegroundColor White
 }
 
-# ── Step 7: Configure WezTerm ────────────────────────────────────────────────
+# -- Step 7: Configure WezTerm ------------------------------------------------
 Write-Host ""
 Write-Host "[7/8] Configuring WezTerm..." -ForegroundColor Yellow
 
@@ -388,11 +388,11 @@ config.launch_menu = {
         }
     }
 } else {
-    # No WezTerm config exists — create a minimal one optimized for SSH to Infinity
+    # No WezTerm config exists -- create a minimal one optimized for SSH to Infinity
     Write-Host "  No WezTerm config found. Creating one optimized for remote access..." -ForegroundColor Cyan
 
     $minimalConfig = @"
--- WezTerm configuration — optimized for remote Claude Code access
+-- WezTerm configuration -- optimized for remote Claude Code access
 local wezterm = require 'wezterm'
 local config  = wezterm.config_builder()
 local act     = wezterm.action
@@ -415,10 +415,10 @@ config.window_padding = { left = 4, right = 4, top = 4, bottom = 4 }
 config.scrollback_lines = 10000
 config.check_for_updates = false
 
--- Default shell — WSL Ubuntu
+-- Default shell -- WSL Ubuntu
 config.default_domain = 'WSL:Ubuntu'
 
--- Launch menu — right-click tab bar or use Ctrl+Shift+P
+-- Launch menu -- right-click tab bar or use Ctrl+Shift+P
 config.launch_menu = {
   { label = 'Claude Code (Infinity)', args = { 'ssh', 'infinity' } },
   { label = 'WSL (Ubuntu)',           args = { 'wsl.exe' } },
@@ -442,7 +442,7 @@ return config
     Write-Host "  Created WezTerm config with Infinity launch menu at $weztermConfig" -ForegroundColor Green
 }
 
-# ── Step 8: Install mosh in WSL (optional) ───────────────────────────────────
+# -- Step 8: Install mosh in WSL (optional) -----------------------------------
 Write-Host ""
 Write-Host "[8/8] Checking mosh in WSL..." -ForegroundColor Yellow
 
@@ -467,10 +467,10 @@ if ($wslAvailable) {
     }
 } else {
     Write-Host "  WSL not available - skipping mosh install." -ForegroundColor Yellow
-    Write-Host "  mosh is optional — SSH works without it." -ForegroundColor White
+    Write-Host "  mosh is optional -- SSH works without it." -ForegroundColor White
 }
 
-# ── Done ─────────────────────────────────────────────────────────────────────
+# -- Done ---------------------------------------------------------------------
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
 Write-Host "  Setup Complete!                           " -ForegroundColor Green
