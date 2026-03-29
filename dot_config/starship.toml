@@ -12,6 +12,7 @@ palette = "catppuccin_macchiato"
 
 # Define the order and format of the information in our prompt
 format = """\
+$hostname\
 [](fg:#3B76F0)\
 $directory\
 ${custom.directory_separator_not_git}\
@@ -138,3 +139,11 @@ surface0 = "#363a4f"
 base = "#24273a"
 mantle = "#1e2030"
 crust = "#181926"
+
+# Show hostname when SSH'd or in container (invisible on local Mac)
+[hostname]
+ssh_only = true
+format = "[$ssh_symbol$hostname]($style) "
+style = "bold fg:#f5a97f"
+ssh_symbol = "󰒋 "
+disabled = false
