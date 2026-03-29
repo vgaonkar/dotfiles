@@ -13,7 +13,7 @@ palette = "catppuccin_macchiato"
 # Define the order and format of the information in our prompt
 format = """\
 $hostname\
-[](fg:#3B76F0)\
+${custom.dir_pill_start}\
 $directory\
 ${custom.directory_separator_not_git}\
 ${custom.directory_separator_git}\
@@ -111,6 +111,12 @@ command = ""
 format = "[](fg:#3B76F0)"
 when = "! git rev-parse --is-inside-work-tree > /dev/null 2>&1"
 
+
+# Rounded left for directory pill (hidden in SSH — hostname arrow replaces it)
+[custom.dir_pill_start]
+command = ""
+format = "[](fg:#3B76F0)"
+when = "! printenv SSH_CONNECTION > /dev/null 2>&1"
 # Catppuccin Macchiato color palette
 [palettes.catppuccin_macchiato]
 rosewater = "#f4dbd6"
@@ -143,7 +149,6 @@ crust = "#181926"
 # Show hostname when SSH'd or in container (invisible on local Mac)
 [hostname]
 ssh_only = true
-format = "[$ssh_symbol$hostname]($style) "
-style = "bold fg:#f5a97f"
-ssh_symbol = "󰒋 "
+format = "[](fg:#f5a97f)[󰒋 $hostname ]($style)[ ](fg:#f5a97f bg:#3B76F0)"
+style = "fg:#1e2030 bg:#f5a97f"
 disabled = false
