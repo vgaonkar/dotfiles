@@ -5,8 +5,14 @@ fish_add_path ~/bin ~/.local/bin
 fish_add_path $HOME/.dotnet/tools
 
 # Manual env exports (mirrors .profile)
-set -gx EDITOR vim
-set -gx VISUAL vim
+set -gx EDITOR 'code --wait'
+set -gx VISUAL 'code --wait'
+
+# Edit current command line in $EDITOR (Alt+E or Esc-then-E)
+if status is-interactive
+    bind \ee edit_command_buffer
+    bind \cx\ce edit_command_buffer  # Ctrl+X Ctrl+E (Emacs/bash standard) as fallback
+end
 
 # Locale — UTF-8 required for Unicode rendering in tmux (Claude Code logo, etc.)
 set -gx LANG en_US.UTF-8
