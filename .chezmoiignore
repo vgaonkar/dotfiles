@@ -86,3 +86,9 @@ __pycache__/
 # Project-specific directories not managed as dotfiles
 windows/
 home/
+
+# Claude Code local secrets & machine state — never manage as dotfiles
+.claude/channels/telegram/.env
+.claude/channels/telegram/notify.conf
+.claude/.await/
+.claude/settings.json.bak.*
