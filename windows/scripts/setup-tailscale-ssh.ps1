@@ -545,7 +545,7 @@ if (-not (Test-Path $cleanupDir)) {
 
 $cleanupScript = "$cleanupDir\omc-cleanup.ps1"
 $cleanupContent = @"
-# omc-cleanup.ps1 — Clean stale OMC state on Infinity (Mac) after disconnect
+# omc-cleanup.ps1 -- Clean stale OMC state on Infinity (Mac) after disconnect
 # Run this if Claude Code behaves erratically after closing WezTerm without detaching.
 #
 # Usage:

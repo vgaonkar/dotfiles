@@ -20,7 +20,7 @@ function Write-Status {
 }
 
 
-Write-Status "🔍 Linting PowerShell Scripts..." 'Blue'
+Write-Status " Linting PowerShell Scripts..." 'Blue'
 
 if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
     Write-Status "Error: 'PSScriptAnalyzer' module is not installed." 'Red'
@@ -51,9 +51,43 @@ $results = foreach ($file in $files) {
 
 if ($results) {
     $results | Format-Table -AutoSize
-    Write-Status "❌ PSScriptAnalyzer found issues." 'Red'
+    Write-Status "[X] PSScriptAnalyzer found issues." 'Red'
     exit 1
-} else {
-    Write-Status "✅ PSScriptAnalyzer passed!" 'Green'
-    exit 0
 }
+
+Write-Status "[OK] PSScriptAnalyzer passed!" 'Green'
+
+# ASCII-only check. These files are UTF-8 without a BOM, and Windows PowerShell 5.1
+# reads such files as Windows-1252 -- so any non-ASCII character is mangled on the
+# fresh-machine bootstrap path. An em dash became "a<euro>"" and terminated a string
+# early, which cost a real debugging session. This is invisible in a diff, so it is
+# checked rather than remembered.
+Write-Status ''
+Write-Status 'Checking scripts are pure ASCII...' 'Blue'
+
+$nonAscii = foreach ($file in $files) {
+    $lineNo = 0
+    foreach ($line in (Get-Content -LiteralPath $file.FullName)) {
+        $lineNo++
+        foreach ($ch in $line.ToCharArray()) {
+            if ([int]$ch -gt 127) {
+                [pscustomobject]@{
+                    Script = $file.Name
+                    Line   = $lineNo
+                    Char   = $ch
+                    Code   = 'U+{0:X4}' -f [int]$ch
+                }
+            }
+        }
+    }
+}
+
+if ($nonAscii) {
+    $nonAscii | Format-Table -AutoSize
+    Write-Status "[X] Non-ASCII characters found. Windows PowerShell 5.1 will mangle these." 'Red'
+    Write-Status "    Replace them with ASCII (em dash -> --, check mark -> [OK], etc.)." 'Yellow'
+    exit 1
+}
+
+Write-Status "[OK] All scripts are pure ASCII!" 'Green'
+exit 0

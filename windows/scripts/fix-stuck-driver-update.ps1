@@ -898,7 +898,7 @@ function Save-RestoreNote {
             "the commands below after the driver is installed):",
             "")
         foreach ($p in $Printer) {
-            $lines += "- **$($p.Name)** — driver ``$($p.DriverName)``, port ``$($p.PortName)``"
+            $lines += "- **$($p.Name)** -- driver ``$($p.DriverName)``, port ``$($p.PortName)``"
         }
         $lines += @("", '```powershell')
         foreach ($p in $Printer) {

@@ -48,7 +48,7 @@ function Write-Status {
 $GithubUser = "vgaonkar"
 $ChezmoiUrl = "https://get.chezmoi.io"
 
-Write-Status "🏠 Dotfiles Installer for Windows" 'Blue'
+Write-Status " Dotfiles Installer for Windows" 'Blue'
 Write-Status ""
 
 # Parity with Unix installer flag style
@@ -57,11 +57,11 @@ if ($args -contains "--browser-login") {
 }
 
 if ($BrowserLogin) {
-    Write-Status "🔐 Browser-login bootstrap selected; handing off to scripts/bootstrap/install.ps1" 'Yellow'
+    Write-Status " Browser-login bootstrap selected; handing off to scripts/bootstrap/install.ps1" 'Yellow'
     $bootstrapPath = Join-Path $PSScriptRoot "bootstrap\install.ps1"
 
     if (-not (Test-Path -Path $bootstrapPath)) {
-        Write-Status "❌ Bootstrap script not found: $bootstrapPath" 'Red'
+        Write-Status "[X] Bootstrap script not found: $bootstrapPath" 'Red'
         exit 1
     }
 
@@ -69,7 +69,7 @@ if ($BrowserLogin) {
         & $bootstrapPath
         exit $LASTEXITCODE
     } catch {
-        Write-Status "❌ Bootstrap failed" 'Red'
+        Write-Status "[X] Bootstrap failed" 'Red'
         Write-Status $_.Exception.Message
         exit 1
     }
@@ -78,24 +78,24 @@ if ($BrowserLogin) {
 # Check if running as Administrator
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 if ($isAdmin) {
-    Write-Status "⚠️  Warning: Running as Administrator. Some features may not work correctly." 'Yellow'
+    Write-Status "[!]  Warning: Running as Administrator. Some features may not work correctly." 'Yellow'
     Write-Status "   It's recommended to run this as a regular user." 'Yellow'
     Write-Status ""
 }
 
 # Install chezmoi if not present
 if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
-    Write-Status "📦 Installing chezmoi..." 'Yellow'
+    Write-Status " Installing chezmoi..." 'Yellow'
     
     try {
         Invoke-Expression (Invoke-RestMethod -Uri $ChezmoiUrl)
     } catch {
-        Write-Status "❌ Failed to install chezmoi" 'Red'
+        Write-Status "[X] Failed to install chezmoi" 'Red'
         Write-Status $_.Exception.Message
         exit 1
     }
 } else {
-    Write-Status "✓ chezmoi already installed" 'Green'
+    Write-Status "[OK] chezmoi already installed" 'Green'
 }
 
 # Add to PATH if needed
@@ -106,7 +106,7 @@ if (Test-Path "$localBin\chezmoi.exe") {
 
 # Initialize and apply dotfiles
 Write-Status ""
-Write-Status "🚀 Initializing dotfiles..." 'Yellow'
+Write-Status " Initializing dotfiles..." 'Yellow'
 Write-Status "Repository: https://github.com/$GithubUser/dotfiles" 'Blue'
 Write-Status ""
 
@@ -114,14 +114,14 @@ try {
     chezmoi init --apply $GithubUser
     
     Write-Status ""
-    Write-Status "✅ Dotfiles installed successfully!" 'Green'
+    Write-Status "[OK] Dotfiles installed successfully!" 'Green'
     Write-Status ""
     Write-Status "Next steps:" 'Blue'
     Write-Status "  1. Restart PowerShell or run: . \$PROFILE"
     Write-Status "  2. Review the installed configurations"
     Write-Status "  3. Read the docs: chezmoi cd; Get-Content docs\01-quick-start.md"
 } catch {
-    Write-Status "❌ Installation failed" 'Red'
+    Write-Status "[X] Installation failed" 'Red'
     Write-Status $_.Exception.Message
     exit 1
 }

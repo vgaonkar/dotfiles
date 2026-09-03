@@ -172,6 +172,43 @@ Cosmetic, fixed alongside: dead `switch` arms for ResultCode 1/3 removed, and th
 
 ---
 
+## Round 4 — found by running it on the actual machine
+
+Two failures on the real Windows 11 Pro box, neither of which any amount of
+macOS-side review would have produced.
+
+### 1. Not a code bug — a saved HTML page
+
+The first cascade of syntax errors came from a file downloaded via the GitHub
+*page* URL rather than the raw one, so PowerShell was parsing `<script>` tags and
+CSS custom properties. **I initially blamed this on the `SuppressMessageAttribute`
+by elimination and stated it as confirmed. That was wrong and is retracted** — see
+the note in the 5.1 section above.
+
+### 2. Real bug: non-ASCII characters break Windows PowerShell 5.1
+
+`.ps1` files here are UTF-8 **without a BOM**, and Windows PowerShell 5.1 reads such
+files as **Windows-1252**. Every non-ASCII character is therefore mangled on the
+fresh-machine path. The em dash in `Save-RestoreNote` (U+2014) decoded to `a<euro>"`,
+whose third byte is a curly quote in CP1252, which terminated the string early and
+produced a cascade of "Missing closing '}'" errors ~60 lines further down.
+
+Inventory found 17 non-ASCII characters across 4 of the 7 scripts — one em dash in
+the driver script, one in `setup-tailscale-ssh.ps1`, and 15 decorative emoji in
+`scripts/install.ps1` and `scripts/lint.ps1`. **The emoji are in the bootstrap
+installer**, i.e. latent mojibake on exactly the fresh-machine path that matters most.
+
+All seven scripts are now pure ASCII, and `scripts/lint.ps1` enforces it with an
+ASCII-only check that reports file, line and codepoint. Verified the guard fails
+(exit 1) on a reintroduced em dash — this class of defect is invisible in a diff, so
+it is checked rather than remembered.
+
+**Lesson for this repo:** the toolchain available on macOS (pwsh 7) cannot see the
+5.1 encoding behaviour at all. Cross-platform shell scripts intended for a fresh
+Windows box should be constrained to ASCII by policy, not by review.
+
+---
+
 ## Recommended execution path
 
 1. Dry run: `.\fix-stuck-driver-update.ps1 -Vendor Canon`
