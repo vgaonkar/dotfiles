@@ -1,0 +1,26 @@
+At D:\fix-stuck-driver-update.ps1:901 char:45
++             $lines += "- **$($p.Name)** â€” driver ``$($p.DriverName) ...
++                                             ~~~~~~
+Unexpected token 'driver' in expression or statement.
+At D:\fix-stuck-driver-update.ps1:900 char:34
++         foreach ($p in $Printer) {
++                                  ~
+Missing closing '}' in statement block or type definition.
+At D:\fix-stuck-driver-update.ps1:894 char:12
++     } else {
++            ~
+Missing closing '}' in statement block or type definition.
+At D:\fix-stuck-driver-update.ps1:844 char:27
++ function Save-RestoreNote {
++                           ~
+Missing closing '}' in statement block or type definition.
+At D:\fix-stuck-driver-update.ps1:924 char:78
++ ... The old folders can simply be deleted once the machine is behaving.")
++                                                                         ~
+Unexpected token ')' in expression or statement.
+At D:\fix-stuck-driver-update.ps1:929 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnexpectedToken
