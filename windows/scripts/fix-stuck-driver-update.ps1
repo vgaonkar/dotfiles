@@ -86,6 +86,30 @@
 
 [CmdletBinding()]
 param(
+    # $Vendor is used as a REGEX and decides everything that gets deleted, so it is
+    # validated hard: it must be a compilable pattern, and it must not match a canary
+    # set of strings that have nothing to do with any one vendor. Without this,
+    # -Vendor '' or -Vendor '.' selects every driver package on the machine.
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        # Capture first: $_ is rebound inside the Where-Object below.
+        $pattern = $_
+        if ([string]::IsNullOrWhiteSpace($pattern)) {
+            throw '-Vendor cannot be blank. It selects what gets deleted.'
+        }
+        try { $null = [regex]::new($pattern) }
+        catch { throw "-Vendor '$pattern' is not a valid regular expression." }
+        $canary = @(
+            'Microsoft', 'Intel Corporation', 'NVIDIA', 'Realtek Semiconductor',
+            'C:\Windows\System32\DriverStore\FileRepository\prnms003.inf_amd64_x\prnms003.inf'
+        )
+        $hits = @($canary | Where-Object { $_ -match $pattern })
+        if ($hits.Count -gt 0) {
+            throw ("-Vendor '$pattern' is too broad -- it also matches unrelated " +
+                   "drivers ($($hits -join '; ')). Use a specific vendor name, e.g. 'Canon'.")
+        }
+        $true
+    })]
     [string]$Vendor = 'Canon',
     [switch]$Execute,
     [switch]$Verify,
@@ -101,20 +125,23 @@ $ErrorActionPreference = 'Stop'
 $script:WarningCount = 0
 
 # -- Output helpers -----------------------------------------------------------
-# $Host.UI.WriteLine keeps colour without tripping PSAvoidUsingWriteHost.
+# Write-Host is the only console writer Start-Transcript captures; the analyzer
+# rule against it is suppressed on the single helper below.
 
 function Write-Status {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+        Justification = 'Write-Host is the only console writer captured by Start-Transcript. Confined to this helper.')]
     param(
         [string]$Message = '',
         [string]$Color = ''
     )
-    # RawUI reports -1 for its colours when there is no real console (redirected
-    # output, CI). $Host.UI.WriteLine rejects -1 as a foreground, so when no colour
-    # is requested use the uncoloured overload rather than the host's current one.
+    # Write-Host, not $Host.UI.WriteLine: Start-Transcript captures Write-Host but
+    # NOT $Host.UI.WriteLine, so the run log would otherwise be empty. Verified by
+    # test on pwsh 7.6.5. PSAvoidUsingWriteHost is suppressed for this one function.
     if ([string]::IsNullOrEmpty($Color)) {
-        $Host.UI.WriteLine($Message)
+        Write-Host $Message
     } else {
-        $Host.UI.WriteLine($Color, $Host.UI.RawUI.BackgroundColor, $Message)
+        Write-Host $Message -ForegroundColor $Color
     }
 }
 
@@ -176,7 +203,10 @@ function Get-UpdateFailure {
         foreach ($entry in $searcher.QueryHistory(0, $count)) {
             if ($entry.Title -notmatch $Match) { continue }
             # ResultCode: 1 in progress, 2 succeeded, 3 succeeded w/ errors, 4 failed, 5 aborted
-            if ($entry.ResultCode -eq 2) { continue }
+            # Only 4 (Failed) and 5 (Aborted) are real failures. 1 (InProgress) and
+            # 3 (SucceededWithErrors) are not, and counting them produced spurious
+            # -Verify failures.
+            if ($entry.ResultCode -ne 4 -and $entry.ResultCode -ne 5) { continue }
             $results += [pscustomobject]@{
                 Date  = $entry.Date
                 Title = $entry.Title
@@ -201,8 +231,13 @@ function Get-VendorDriverPackage {
 
     $packages = @()
     try {
-        $packages = Get-WindowsDriver -Online -All |
-            Where-Object { $_.ProviderName -match $Match -or $_.OriginalFileName -match $Match } |
+        # NOT -All: -All includes Microsoft inbox drivers, which must never reach
+        # pnputil /delete-driver /force. Without it, only third-party packages are
+        # returned. The oem*.inf guard is a second belt on the same trousers.
+        # Match ProviderName only -- OriginalFileName is a full DriverStore path, so
+        # matching it would make 'win', 'store' or 'system' select every package.
+        $packages = Get-WindowsDriver -Online |
+            Where-Object { $_.ProviderName -match $Match -and $_.Driver -like 'oem*.inf' } |
             Select-Object Driver, OriginalFileName, ProviderName, ClassName, Version, Date
     } catch {
         Write-Status "   (Get-WindowsDriver failed: $($_.Exception.Message))" 'Yellow'
@@ -242,6 +277,21 @@ function Get-VendorHardwareId {
     return ($ids | Where-Object { $_ } | Sort-Object -Unique)
 }
 
+function Get-VendorPrinter {
+    param([string]$Match = '')
+
+    $printers = @()
+    try {
+        $printers = Get-Printer -ErrorAction SilentlyContinue |
+            Where-Object { $_.DriverName -match $Match } |
+            Select-Object Name, DriverName, PortName, Shared, Published
+    } catch {
+        # PrintManagement module absent (e.g. Server Core) -- not fatal.
+        Write-Status "   (Get-Printer unavailable: $($_.Exception.Message))" 'Yellow'
+    }
+    return $printers
+}
+
 function Get-Diagnosis {
     param([string]$Match = '')
 
@@ -253,6 +303,7 @@ function Get-Diagnosis {
         RebootFlag     = @(Get-PendingRebootFlag)
         UpdateFailure  = @(Get-UpdateFailure -Match $Match)
         DriverPackage  = @(Get-VendorDriverPackage -Match $Match)
+        Printer        = @(Get-VendorPrinter -Match $Match)
         Device         = @($devices | Select-Object FriendlyName, InstanceId, Status, Class)
         HardwareId     = @(Get-VendorHardwareId -Device $devices)
     }
@@ -359,14 +410,25 @@ function Export-VendorDriver {
 
         $ErrorActionPreference = 'Continue'
         & pnputil.exe /export-driver $pkg.Driver $target 2>&1 | Out-Null
+        $exportCode = $LASTEXITCODE
         $ErrorActionPreference = 'Stop'
 
-        $files = Get-ChildItem -Path $target -Recurse -File -ErrorAction SilentlyContinue
-        if ($files -and $files.Count -gt 0) {
+        if ($exportCode -ne 0) {
+            Write-Warn "pnputil /export-driver exited $exportCode for $($pkg.Driver)"
+        }
+
+        # Presence AND a non-zero total size AND a readable .inf -- a zero-byte or
+        # truncated export must not be accepted as a backup.
+        $files = @(Get-ChildItem -Path $target -Recurse -File -ErrorAction SilentlyContinue)
+        $bytes = ($files | Measure-Object -Property Length -Sum).Sum
+        $infs = @($files | Where-Object { $_.Extension -eq '.inf' })
+        if ($exportCode -eq 0 -and $files.Count -gt 0 -and $bytes -gt 0 -and $infs.Count -gt 0) {
             $exported++
-            Write-Status "      backed up $($files.Count) file(s)" 'Green'
+            Write-Status ("      backed up {0} file(s), {1:N0} bytes, {2} .inf" -f `
+                $files.Count, $bytes, $infs.Count) 'Green'
         } else {
-            Write-Warn "export produced no files for $($pkg.Driver)"
+            Write-Warn ("export failed verification for $($pkg.Driver) " +
+                        "(exit $exportCode, $($files.Count) files, $bytes bytes, $($infs.Count) inf)")
         }
     }
 
@@ -466,8 +528,13 @@ function Remove-VendorDriver {
         if ($Execute) {
             $ErrorActionPreference = 'Continue'
             & pnputil.exe /remove-device $ghost.InstanceId 2>&1 | Out-Null
+            $removeCode = $LASTEXITCODE
             $ErrorActionPreference = 'Stop'
-            Write-Status "      removed $($ghost.FriendlyName)" 'Green'
+            if ($removeCode -eq 0) {
+                Write-Status "      removed $($ghost.FriendlyName)" 'Green'
+            } else {
+                Write-Warn "pnputil /remove-device exited $removeCode for $($ghost.FriendlyName)"
+            }
         }
     }
 }
@@ -488,39 +555,56 @@ function Reset-UpdateComponent {
 
     if (-not $Execute) { return }
 
+    # Record which services were actually running before we touch them, so the
+    # restart phase does not start something that was already stopped or disabled.
+    $wasRunning = @{}
     foreach ($svc in $services) {
         $service = Get-Service -Name $svc -ErrorAction SilentlyContinue
         if ($null -eq $service) { continue }
-        try {
-            Stop-Service -Name $svc -Force -ErrorAction Stop
-            Write-Status "      stopped $svc" 'Green'
-        } catch {
-            Write-Warn "could not stop $svc : $($_.Exception.Message)"
-        }
+        $wasRunning[$svc] = ($service.Status -eq 'Running')
     }
 
-    Start-Sleep -Seconds 3
-
-    foreach ($folder in $folders) {
-        if (-not (Test-Path $folder)) { continue }
-        $newName = "$(Split-Path $folder -Leaf).old.$stamp"
-        try {
-            Rename-Item -Path $folder -NewName $newName -ErrorAction Stop
-            Write-Status "      renamed $folder -> $newName" 'Green'
-        } catch {
-            Write-Warn "could not rename $folder : $($_.Exception.Message)"
-            Write-Status '      A service still holds it. Reboot and re-run with -SkipDriverPurge.' 'Yellow'
+    # Everything between the stop and the restart lives in try/finally: if the
+    # rename throws, or the operator hits Ctrl-C mid-phase, the machine must not be
+    # left with Windows Update, BITS and CryptSvc stopped.
+    try {
+        foreach ($svc in $services) {
+            if (-not $wasRunning.ContainsKey($svc)) { continue }
+            try {
+                Stop-Service -Name $svc -Force -ErrorAction Stop
+                Write-Status "      stopped $svc" 'Green'
+            } catch {
+                Write-Warn "could not stop $svc : $($_.Exception.Message)"
+            }
         }
-    }
 
-    foreach ($svc in $services) {
-        $service = Get-Service -Name $svc -ErrorAction SilentlyContinue
-        if ($null -eq $service) { continue }
-        try {
-            Start-Service -Name $svc -ErrorAction Stop
-            Write-Status "      started $svc" 'Green'
-        } catch {
-            Write-Warn "could not start $svc : $($_.Exception.Message)"
+        Start-Sleep -Seconds 3
+
+        foreach ($folder in $folders) {
+            if (-not (Test-Path $folder)) { continue }
+            $newName = "$(Split-Path $folder -Leaf).old.$stamp"
+            try {
+                Rename-Item -Path $folder -NewName $newName -ErrorAction Stop
+                Write-Status "      renamed $folder -> $newName" 'Green'
+            } catch {
+                Write-Warn "could not rename $folder : $($_.Exception.Message)"
+                Write-Status '      A service still holds it. Reboot and re-run with -SkipDriverPurge.' 'Yellow'
+            }
+        }
+    } finally {
+        foreach ($svc in $services) {
+            if (-not $wasRunning.ContainsKey($svc)) { continue }
+            if (-not $wasRunning[$svc]) {
+                Write-Status "      left $svc stopped (it was not running before)" 'DarkGray'
+                continue
+            }
+            try {
+                Start-Service -Name $svc -ErrorAction Stop
+                Write-Status "      started $svc" 'Green'
+            } catch {
+                Write-Warn "could not start $svc : $($_.Exception.Message)"
+                Write-Status "      START IT MANUALLY: Start-Service $svc" 'Red'
+            }
         }
     }
 }
@@ -596,14 +680,18 @@ function Disable-DeviceInstall {
 
     # Existing entries are numbered "1", "2", ... -- append rather than clobber.
     $existing = @()
+    $usedIndex = @(0)
     $props = Get-ItemProperty -Path $denyKey -ErrorAction SilentlyContinue
     if ($null -ne $props) {
-        $existing = @($props.PSObject.Properties |
-            Where-Object { $_.Name -match '^\d+$' } |
-            ForEach-Object { $_.Value })
+        $numbered = @($props.PSObject.Properties | Where-Object { $_.Name -match '^\d+$' })
+        $existing = @($numbered | ForEach-Object { $_.Value })
+        $usedIndex += @($numbered | ForEach-Object { [int]$_.Name })
     }
 
-    $index = $existing.Count
+    # Continue from the HIGHEST existing number, not the count. Entries are not
+    # guaranteed contiguous -- with 1,2,5 present, starting at count (3) would
+    # overwrite entry 5, destroying a deny rule this script did not create.
+    $index = ($usedIndex | Measure-Object -Maximum).Maximum
     foreach ($id in $HardwareId) {
         if ($existing -contains $id) {
             Write-Status "      already denied: $id" 'DarkGray'
@@ -615,7 +703,10 @@ function Disable-DeviceInstall {
     }
 
     Write-Status '      device install blocked; other driver updates still work' 'Green'
-    Write-Status '      undo with:' 'DarkGray'
+    Write-Status ''
+    Write-Status '      IMPORTANT: this blocks ALL installs for that hardware -- including' 'Yellow'
+    Write-Status "      the vendor's own driver. Install the $Vendor driver FIRST, then" 'Yellow'
+    Write-Status '      re-run with -BlockByHardwareId. To install now, undo the block:' 'Yellow'
     Write-Status "        Remove-Item -Path '$denyKey' -Recurse" 'DarkGray'
     Write-Status "        Set-ItemProperty -Path '$key' -Name DenyDeviceIDs -Value 0" 'DarkGray'
 }
@@ -647,6 +738,114 @@ function Invoke-ImageRepair {
     } else {
         Write-Warn "sfc exited $sfcCode -- see $env:SystemRoot\Logs\CBS\CBS.log"
     }
+}
+
+function Save-RestoreNote {
+    param(
+        [object[]]$Package = @(),
+        [object[]]$Printer = @(),
+        [string]$Destination = ''
+    )
+
+    $lines = @(
+        "# How to undo this run",
+        "",
+        "Generated $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) on $env:COMPUTERNAME.",
+        "Vendor pattern: ``$Vendor``",
+        "",
+        "Run every command from an **elevated** PowerShell.",
+        "",
+        "## 1. Remove the device block (do this FIRST if you used -BlockByHardwareId)",
+        "",
+        "The deny list blocks *all* driver installs for the matched hardware, including",
+        "the vendor's own driver. Nothing below will install until it is removed.",
+        "",
+        '```powershell',
+        "Remove-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceIDs' -Recurse -ErrorAction SilentlyContinue",
+        "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions' -Name DenyDeviceIDs -Value 0 -ErrorAction SilentlyContinue",
+        "Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name ExcludeWUDriversInQualityUpdate -ErrorAction SilentlyContinue",
+        '```',
+        "",
+        "Registry backups taken before those writes are the ``.reg`` files in this folder;",
+        "double-click one to restore the key exactly as it was.",
+        "",
+        "## 2. Re-stage the driver packages"
+    )
+
+    if ($Package.Count -eq 0) {
+        $lines += @("", "No driver packages were exported in this run.")
+    } else {
+        $lines += @("", "One command per package. These re-stage the package into the driver store:", "", '```powershell')
+        foreach ($pkg in $Package) {
+            $dir = Join-Path (Join-Path $Destination 'drivers') ($pkg.Driver -replace '\.inf$', '')
+            $lines += "# $($pkg.ProviderName) $($pkg.Version) (was $($pkg.Driver))"
+            $lines += "Get-ChildItem -Path '$dir' -Recurse -Filter *.inf | ForEach-Object { pnputil /add-driver `$_.FullName /install }"
+        }
+        $lines += '```'
+        $lines += @("", "Note: ``/install`` binds the driver to a device that is present and enumerated.",
+                    "If the printer is off or unplugged, the package stages but does not install.")
+    }
+
+    $lines += @("", "## 3. Recreate the printer")
+
+    if ($Printer.Count -eq 0) {
+        $lines += @("", "No print queues were removed in this run.")
+    } else {
+        $lines += @("",
+            "Re-staging a driver package does NOT recreate a print queue. These queues were",
+            "removed and must be added back (Settings > Bluetooth & devices > Printers, or",
+            "the commands below after the driver is installed):",
+            "")
+        foreach ($p in $Printer) {
+            $lines += "- **$($p.Name)** — driver ``$($p.DriverName)``, port ``$($p.PortName)``"
+        }
+        $lines += @("", '```powershell')
+        foreach ($p in $Printer) {
+            $lines += "Add-Printer -Name '$($p.Name)' -DriverName '$($p.DriverName)' -PortName '$($p.PortName)'"
+        }
+        $lines += '```'
+    }
+
+    $lines += @("", "## 4. Restore the Windows Update state", "",
+        "Phase 4 renamed these folders rather than deleting them. Windows rebuilt fresh",
+        "copies. To go back, stop the update services, delete the new folders, and rename",
+        "the ``.old.<timestamp>`` ones back:", "",
+        '```powershell',
+        "Get-ChildItem `$env:SystemRoot\SoftwareDistribution.old.*, `$env:SystemRoot\System32\catroot2.old.*",
+        '```', "",
+        "In practice this is rarely wanted -- a rebuilt SoftwareDistribution is healthy.",
+        "The old folders can simply be deleted once the machine is behaving.")
+
+    $path = Join-Path $Destination 'RESTORE.md'
+    $lines -join [Environment]::NewLine | Set-Content -Path $path -Encoding UTF8
+    Write-Status "   restore guide written: $path" 'DarkGray'
+}
+
+function Test-PolicySupport {
+    # ExcludeWUDriversInQualityUpdate and DenyDeviceIDs are Group Policy settings.
+    # Microsoft documents both for Pro / Enterprise / Education / IoT Enterprise --
+    # Windows Home is NOT listed. On Home the registry write succeeds and is then
+    # silently ignored, which would leave the operator believing they are protected.
+    $edition = $null
+    try {
+        $edition = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).Caption
+    } catch {
+        Write-Status "   (could not read Windows edition: $($_.Exception.Message))" 'Yellow'
+        return $true
+    }
+
+    Write-Status "   Edition: $edition" 'DarkGray'
+    if ($edition -match 'Home') {
+        Write-Status ''
+        Write-Status '   WARNING: this looks like a Home edition. The Group Policy keys this' 'Red'
+        Write-Status '   phase writes are documented for Pro / Enterprise / Education / IoT' 'Red'
+        Write-Status '   only. On Home the values are written but Windows ignores them, so' 'Red'
+        Write-Status '   the driver CAN still come back. Treat the block as ineffective and' 'Red'
+        Write-Status '   rely on the purge plus a vendor-supplied driver instead.' 'Red'
+        Write-Status ''
+        return $false
+    }
+    return $true
 }
 
 function Save-UpdateLog {
@@ -717,18 +916,39 @@ function Test-FixResult {
         $failures += 'driver packages still present'
     }
 
-    # A reinstalled printer is expected and fine -- only flag NEW failures.
-    $newFailures = $now.UpdateFailure
-    if ($null -ne $baseline) {
-        $seen = @(@($baseline.Data.UpdateFailure) | ForEach-Object { "$($_.Title)|$($_.Code)" })
-        $newFailures = @($now.UpdateFailure | Where-Object { $seen -notcontains "$($_.Title)|$($_.Code)" })
-    }
-    if (@($newFailures).Count -eq 0) {
-        Write-Status '     PASS  no new failed update attempts since the baseline' 'Green'
+    # The update-history check is only meaningful if the history survived the fix.
+    # Phase 4 renames SoftwareDistribution, which is where QueryHistory reads from --
+    # so after a reset the history is empty and a naive "no new failures" test would
+    # always PASS, including in the exact case it exists to catch. Detect the reset
+    # and report SKIPPED rather than a green PASS built on missing evidence.
+    $historyReset = @(Get-ChildItem -Path "$env:SystemRoot\SoftwareDistribution.old.*" `
+        -Directory -ErrorAction SilentlyContinue).Count -gt 0
+
+    if ($historyReset) {
+        Write-Status '     SKIP  update history was reset by the fix -- cannot compare.' 'Yellow'
+        Write-Status '             Re-check after Windows Update has run once:' 'DarkGray'
+        Write-Status '             Settings > Windows Update > Update history' 'DarkGray'
+    } elseif ($null -eq $baseline) {
+        # Without a baseline every historical failure looks new, which would fail the
+        # run for the very problem it was asked to confirm gone.
+        Write-Status '     SKIP  no baseline snapshot to compare against.' 'Yellow'
+        Write-Status "             ($(@($now.UpdateFailure).Count) historical failure(s) found, not judged.)" 'DarkGray'
     } else {
-        Write-Status "     FAIL  $(@($newFailures).Count) new failed update attempt(s):" 'Red'
-        foreach ($f in $newFailures) { Write-Status "             $($f.Code)  $($f.Title)" 'Red' }
-        $failures += 'new failed update attempts'
+        # Compare on Date too: without it, the SAME driver failing again after the
+        # fix -- precisely the recurrence being tested for -- matches the baseline
+        # entry by Title|Code and is silently filtered out as "already seen".
+        $seen = @(@($baseline.Data.UpdateFailure) |
+            ForEach-Object { "$($_.Title)|$($_.Code)|$(([datetime]$_.Date).ToString('o'))" })
+        $newFailures = @($now.UpdateFailure | Where-Object {
+            $seen -notcontains "$($_.Title)|$($_.Code)|$(([datetime]$_.Date).ToString('o'))"
+        })
+        if ($newFailures.Count -eq 0) {
+            Write-Status '     PASS  no new failed update attempts since the baseline' 'Green'
+        } else {
+            Write-Status "     FAIL  $($newFailures.Count) new failed update attempt(s):" 'Red'
+            foreach ($f in $newFailures) { Write-Status "             $($f.Code)  $($f.Title)" 'Red' }
+            $failures += 'new failed update attempts'
+        }
     }
 
     return $failures
@@ -840,6 +1060,12 @@ try {
             exit 2
         }
 
+        # Written BEFORE the purge, so the undo guide exists even if a later phase
+        # fails or the operator interrupts the run.
+        if ($Execute) {
+            Save-RestoreNote -Package $packages -Printer $diagnosis.Printer -Destination $runDir
+        }
+
         Write-Phase 'Phase 3/6  Purge driver packages'
         Remove-VendorDriver -Package $packages -Match $Vendor
     }
@@ -856,6 +1082,10 @@ try {
     # -- Phase 5: block redelivery --------------------------------------------
     if ($BlockByHardwareId -or $DisableDriverUpdate) {
         Write-Phase 'Phase 5/6  Block the driver being offered again'
+        $policyWorks = Test-PolicySupport
+        if (-not $policyWorks) {
+            Write-Warn 'Group Policy blocking is not supported on this edition (see above).'
+        }
         if ($BlockByHardwareId) {
             Disable-DeviceInstall -HardwareId $diagnosis.HardwareId -Destination $runDir
         }
@@ -893,13 +1123,21 @@ try {
         Write-Status '  2. Confirm the fix held:' 'White'
         Write-Status "       .\fix-stuck-driver-update.ps1 -Vendor $Vendor -Verify" 'Cyan'
         Write-Status "  3. Install the driver from $Vendor's own website, not Windows Update." 'White'
+        if ($BlockByHardwareId) {
+            Write-Status '     (Remove the device block first -- see the Phase 5 undo commands' 'Yellow'
+            Write-Status '      above, or RESTORE.md. The block prevents ALL installs for that' 'Yellow'
+            Write-Status '      hardware, including the vendor driver you are about to install.)' 'Yellow'
+        } else {
+            Write-Status '  4. Only once the printer works, block redelivery:' 'White'
+            Write-Status "       .\fix-stuck-driver-update.ps1 -Vendor $Vendor -Execute -SkipDriverPurge -SkipUpdateReset -BlockByHardwareId" 'Cyan'
+        }
         Write-Status ''
         if ($script:WarningCount -gt 0) {
             Write-Status "  $script:WarningCount warning(s) were raised -- review run.log before rebooting." 'Yellow'
             Write-Status ''
         }
         Write-Status "  Backups + log: $runDir" 'Cyan'
-        Write-Status '  Restore a driver: pnputil /add-driver <path-to-inf> /install' 'DarkGray'
+        Write-Status "  How to undo everything: $runDir\RESTORE.md" 'Cyan'
     } else {
         Write-Status '=================================================' 'Green'
         Write-Status '  Dry run complete. Nothing was changed.' 'Green'

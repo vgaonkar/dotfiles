@@ -69,17 +69,20 @@ If you cannot push changes to your fork:
   a device whose old package is stale, the install fails (usually `0x800f020b`), and
   the pending-reboot flag never clears.
 
-  Run from an **elevated** PowerShell:
+  Run from an **elevated** PowerShell, from a **clone of this repo** — `windows/` is
+  excluded from chezmoi, so these files are not deployed to your home directory:
 
   ```powershell
   # 1. Diagnose only — nothing is changed
   .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon
 
-  # 2. Apply the fix, blocking only this device from being reinstalled
-  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Execute -BlockByHardwareId
+  # 2. Apply the fix
+  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Execute
 
   # 3. Reboot, then confirm the fix actually held
   .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Verify
+
+  # 4. Install Canon's own driver, from Canon's site
   ```
 
   The script backs up every driver package it touches (and verifies the backup landed)
@@ -89,10 +92,24 @@ If you cannot push changes to your fork:
   present. Once verified, install the driver from the vendor's own site rather than
   Windows Update.
 
+  **Order matters.** `-BlockByHardwareId` blocks *all* driver installs for that
+  hardware — including Canon's own driver. Install the vendor driver first, then block:
+
+  ```powershell
+  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Execute -SkipDriverPurge -SkipUpdateReset -BlockByHardwareId
+  ```
+
+  **Windows Home:** both blocking options write Group Policy keys that Microsoft
+  documents for Pro, Enterprise, Education and IoT Enterprise only. On Home they are
+  written and then silently ignored. The script warns when it detects a Home edition;
+  rely on the purge plus a vendor-supplied driver there.
+
   Useful extras: `-DisableDriverUpdate` blocks *all* Windows Update drivers (blunter
   than `-BlockByHardwareId`); `-RepairImage` runs DISM + `sfc /scannow` when a
-  reboot flag survives; `Get-Help .\windows\scripts\fix-stuck-driver-update.ps1 -Full`
-  documents every switch.
+  reboot flag survives; `-SkipDriverPurge` / `-SkipUpdateReset` narrow a run;
+  `Get-Help .\windows\scripts\fix-stuck-driver-update.ps1 -Full` documents every switch.
+  Each `-Execute` run writes a `RESTORE.md` next to its backups with the exact commands
+  to undo it.
 
 ## Where to Get Help
 
