@@ -154,9 +154,14 @@ fresh-machine bootstraps. If the attribute fails to parse under 5.1, that is a *
 bootstrap failure introduced by this work** — the worst possible regression, on the one
 script that runs before anything else exists.
 
-It is a plain .NET attribute, it is the syntax PSScriptAnalyzer's own docs prescribe,
-and PSSA treats 5.1 as a first-class host, so it very likely parses. That is not the
-same as knowing. **Run this on any Windows box before trusting the bootstrap:**
+**Resolution: the attribute was removed from all 7 scripts as a precaution, and
+`PSAvoidUsingWriteHost` switched off repo-wide instead.** Note carefully: it was NOT
+proven broken. A cascade of 5.1 syntax errors was initially attributed to it, but the
+error text showed the file being parsed was a saved GitHub HTML page, not the script.
+The 5.1 behaviour of the attribute remains **unverified either way** — removing it just
+means no bootstrap installer depends on an untested construct.
+
+If it is ever reintroduced, settle it first:
 
 ```powershell
 powershell.exe -NoProfile -Command "[scriptblock]::Create((Get-Content -Raw scripts\bootstrap\install.ps1)) | Out-Null; 'PARSED OK'"
