@@ -228,13 +228,30 @@ function Get-UpdateFailure {
             # 3 (SucceededWithErrors) are not, and counting them produced spurious
             # -Verify failures.
             if ($entry.ResultCode -ne 4 -and $entry.ResultCode -ne 5) { continue }
+
+            # DateKey is UTC ticks as a digit string, computed once from the live COM
+            # DateTime and compared later as a plain string. -Verify must not cast a
+            # date back out of diagnosis.json: hosts differ in how they rehydrate
+            # dates, and a DateTimeKind difference would make every historical failure
+            # look new -- a false FAIL with exit 3.
+            # Ticks specifically, NOT an ISO-8601 string: ConvertFrom-Json recognises
+            # ISO strings and silently converts them back into DateTime objects, which
+            # reintroduces the very ambiguity this avoids. Verified: 'o' and 's' both
+            # return as DateTime; a digit string returns as String, unchanged.
+            $dateKey = ''
+            try {
+                $dateKey = ([datetime]$entry.Date).ToUniversalTime().Ticks.ToString()
+            } catch {
+                $dateKey = "$($entry.Date)"
+                Write-Verbose "Could not normalise update date: $($_.Exception.Message)"
+            }
+
             $results += [pscustomobject]@{
                 Date  = $entry.Date
+                DateKey = $dateKey
                 Title = $entry.Title
                 Code  = '0x{0:x8}' -f $entry.HResult
                 Result = switch ($entry.ResultCode) {
-                    1 { 'InProgress' }
-                    3 { 'SucceededWithErrors' }
                     4 { 'Failed' }
                     5 { 'Aborted' }
                     default { "Unknown($($entry.ResultCode))" }
@@ -359,7 +376,7 @@ function Show-Diagnosis {
 
     Write-Status ''
     if ($Diagnosis.UpdateFailure.Count -gt 0) {
-        Write-Status "   Non-successful update history matching '$($Diagnosis.Vendor)':" 'Yellow'
+        Write-Status "   Failed/aborted update history matching '$($Diagnosis.Vendor)':" 'Yellow'
         foreach ($f in $Diagnosis.UpdateFailure) {
             Write-Status "     $($f.Date.ToString('yyyy-MM-dd HH:mm'))  $($f.Result)  $($f.Code)" 'White'
             Write-Status "       $($f.Title)" 'DarkGray'
@@ -1066,10 +1083,12 @@ function Test-FixResult {
         # Compare on Date too: without it, the SAME driver failing again after the
         # fix -- precisely the recurrence being tested for -- matches the baseline
         # entry by Title|Code and is silently filtered out as "already seen".
+        # String comparison on DateKey -- no [datetime] cast, so the result does not
+        # depend on how this host's ConvertFrom-Json rehydrates dates.
         $seen = @(@($baseline.Data.UpdateFailure) |
-            ForEach-Object { "$($_.Title)|$($_.Code)|$(([datetime]$_.Date).ToString('o'))" })
+            ForEach-Object { "$($_.Title)|$($_.Code)|$($_.DateKey)" })
         $newFailures = @($now.UpdateFailure | Where-Object {
-            $seen -notcontains "$($_.Title)|$($_.Code)|$(([datetime]$_.Date).ToString('o'))"
+            $seen -notcontains "$($_.Title)|$($_.Code)|$($_.DateKey)"
         })
         if ($newFailures.Count -eq 0) {
             Write-Status '     PASS  no new failed update attempts since the baseline' 'Green'

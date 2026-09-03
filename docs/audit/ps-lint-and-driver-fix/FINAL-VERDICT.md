@@ -120,6 +120,53 @@ it cannot be silently auto-answered by a scheduled task or a piped invocation.
 
 ---
 
+## Round 3 — the critic's two "cannot verify" items
+
+The critic closed by naming two things it refused to assert. Both were followed up.
+
+### Resolved in code: JSON date rehydration (would have caused a false FAIL)
+
+The `-Verify` dedup cast dates back out of `diagnosis.json`. Windows PowerShell 5.1
+and PowerShell 7 use different JSON deserialisers, and a `DateTimeKind` difference
+would make every historical failure look new — exit 3 on a machine that was actually
+fixed.
+
+Replaced the cast with a `DateKey` computed once from the live COM `DateTime` and
+compared as a plain string. The first attempt used an ISO-8601 string and **was
+broken** — testing showed `ConvertFrom-Json` recognises ISO strings and silently
+converts them back to `DateTime`, so the baseline key rendered as `08/30/2026 17:42:11`
+and never matched. Formats were measured rather than assumed:
+
+| Format | Returns as | Round-trips identical |
+|---|---|---|
+| `o` (ISO round-trip) | DateTime | **No** |
+| `s` (ISO sortable) | DateTime | **No** |
+| `yyyyMMddHHmmssfffffff` | String | Yes |
+| **UTC ticks** | **String** | **Yes** |
+
+Now uses UTC ticks. Verified both directions: the known failure is filtered (no false
+FAIL) and a recurrence one second later is still detected as new.
+
+### Still unverified: `SuppressMessageAttribute` under Windows PowerShell 5.1
+
+`scripts/install.ps1` and `scripts/bootstrap/install.ps1` are `#Requires -Version 5.1`
+fresh-machine bootstraps. If the attribute fails to parse under 5.1, that is a **total
+bootstrap failure introduced by this work** — the worst possible regression, on the one
+script that runs before anything else exists.
+
+It is a plain .NET attribute, it is the syntax PSScriptAnalyzer's own docs prescribe,
+and PSSA treats 5.1 as a first-class host, so it very likely parses. That is not the
+same as knowing. **Run this on any Windows box before trusting the bootstrap:**
+
+```powershell
+powershell.exe -NoProfile -Command "[scriptblock]::Create((Get-Content -Raw scripts\bootstrap\install.ps1)) | Out-Null; 'PARSED OK'"
+```
+
+Cosmetic, fixed alongside: dead `switch` arms for ResultCode 1/3 removed, and the
+"Non-successful update history" label corrected to "Failed/aborted update history".
+
+---
+
 ## Recommended execution path
 
 1. Dry run: `.\fix-stuck-driver-update.ps1 -Vendor Canon`
