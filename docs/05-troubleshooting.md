@@ -72,17 +72,27 @@ If you cannot push changes to your fork:
   Run from an **elevated** PowerShell:
 
   ```powershell
-  # Diagnose only — nothing is changed
+  # 1. Diagnose only — nothing is changed
   .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon
 
-  # Apply the fix, and stop Windows Update re-offering drivers
-  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Execute -DisableDriverUpdate
+  # 2. Apply the fix, blocking only this device from being reinstalled
+  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Execute -BlockByHardwareId
+
+  # 3. Reboot, then confirm the fix actually held
+  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Verify
   ```
 
   The script backs up every driver package it touches (and verifies the backup landed)
-  before deleting anything. Backups and a transcript go to
-  `%USERPROFILE%\dotfiles-backups\driver-fix\<timestamp>\`. Reboot afterwards, then
-  install the driver from the vendor's own site rather than Windows Update.
+  before deleting anything. Backups, a `diagnosis.json` snapshot, and a transcript go to
+  `%USERPROFILE%\dotfiles-backups\driver-fix\<timestamp>\`. `-Verify` diffs against that
+  snapshot and exits non-zero if the flags did not clear or the packages are still
+  present. Once verified, install the driver from the vendor's own site rather than
+  Windows Update.
+
+  Useful extras: `-DisableDriverUpdate` blocks *all* Windows Update drivers (blunter
+  than `-BlockByHardwareId`); `-RepairImage` runs DISM + `sfc /scannow` when a
+  reboot flag survives; `Get-Help .\windows\scripts\fix-stuck-driver-update.ps1 -Full`
+  documents every switch.
 
 ## Where to Get Help
 

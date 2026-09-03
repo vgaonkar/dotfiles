@@ -19,7 +19,7 @@ Windows-specific configuration files that are NOT managed by Chezmoi (excluded v
 | File | Description |
 |------|-------------|
 | `scripts/install-wezterm.ps1` | PowerShell script to install WezTerm on Windows |
-| `scripts/fix-stuck-driver-update.ps1` | Repairs a Windows Update driver stuck in a failing install loop (orphaned driver package + stale update state). Dry run by default; `-Execute` applies. Backs up and verifies before any delete. |
+| `scripts/fix-stuck-driver-update.ps1` | Repairs a Windows Update driver stuck in a failing install loop (orphaned driver package + stale update state). Dry run by default; `-Execute` applies, `-Verify` checks it held after reboot. Backs up and verifies before any delete. |
 | `AppData/.../LocalState/settings.json` | Windows Terminal settings (theme, keybindings, profiles) |
 
 ## For AI Agents
@@ -33,7 +33,10 @@ Windows-specific configuration files that are NOT managed by Chezmoi (excluded v
 
 ### Testing Requirements
 
-- PowerShell scripts: `pwsh scripts/lint.ps1` (requires PSScriptAnalyzer module)
+- PowerShell scripts: `pwsh scripts/lint.ps1` (requires PSScriptAnalyzer module).
+  This directory is included in the lint glob. All files here are currently clean;
+  keep them that way. `Write-Host` trips `PSAvoidUsingWriteHost` — use the
+  `Write-Status` helper (`$Host.UI.WriteLine`) that each script defines instead.
 - Windows Terminal settings: validate JSON syntax
 
 ### Common Patterns
