@@ -1,0 +1,43 @@
+At D:\fix-stuck-driver-update.ps1:18 char:5
++   --fontStack-monospace: "Monaspace Neon", ui-monospace, SFMono-Regul ...
++     ~
+Missing expression after unary operator '--'.
+At D:\fix-stuck-driver-update.ps1:18 char:5
++   --fontStack-monospace: "Monaspace Neon", ui-monospace, SFMono-Regul ...
++     ~~~~~~~~~~~~~~~~~~~~
+Unexpected token 'fontStack-monospace:' in expression or statement.
+At D:\fix-stuck-driver-update.ps1:34 char:89
++ ... ce="dDVlS64GMLKmE5poNEMubP/xOQrp/Z7JTmGNvkxRP9I=">{"imports":{"react" ...
++                                                                 ~
+Unexpected token ':' in expression or statement.
+At D:\fix-stuck-driver-update.ps1:34 char:98
++ ... ts":{"react":"https://github.githubassets.com/assets/react-376ca33a94 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unexpected token ':"https://github.githubassets.com/assets/react-376ca33a9466664f.js"' in expression or statement.
+At D:\fix-stuck-driver-update.ps1:34 char:165
++ ... ://github.githubassets.com/assets/react-376ca33a9466664f.js","react/c ...
++                                                                 ~
+Missing argument in parameter list.
+At D:\fix-stuck-driver-update.ps1:34 char:923
++ ... hubassets.com/assets/react-reconciler-d318e9cce8fcc092.js"}}</script>
++                                                                 ~
+The '<' operator is reserved for future use.
+At D:\fix-stuck-driver-update.ps1:53 char:9
++       --tab-size-preference: 4;
++         ~
+Missing expression after unary operator '--'.
+At D:\fix-stuck-driver-update.ps1:53 char:9
++       --tab-size-preference: 4;
++         ~~~~~~~~~~~~~~~~~~~~
+Unexpected token 'tab-size-preference:' in expression or statement.
+At D:\fix-stuck-driver-update.ps1:56 char:8
++     pre, code {
++        ~
+Missing argument in parameter list.
+At D:\fix-stuck-driver-update.ps1:57 char:23
++       tab-size: var(--tab-size-preference);
++                       ~
+Missing expression after unary operator '--'.
+Not all parse errors were reported.  Correct the reported errors and try again.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingExpressionAfterOperator
