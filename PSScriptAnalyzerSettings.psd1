@@ -21,8 +21,11 @@
         # output is the product, and Write-Host is the ONLY writer Start-Transcript
         # captures -- $Host.UI.WriteLine is not, which silently emptied every run log
         # when it was tried. The per-function SuppressMessageAttribute alternative was
-        # also reverted: it failed to parse under Windows PowerShell 5.1, breaking the
-        # fresh-machine bootstrap installers outright.
+        # also removed, but as a PRECAUTION, not because it was proven broken: its
+        # behaviour under Windows PowerShell 5.1 was never established, and a bootstrap
+        # installer that runs on fresh machines should not depend on an untested
+        # construct. (A cascade of 5.1 syntax errors was briefly blamed on it; the
+        # error text showed the file being parsed was a saved GitHub HTML page.)
         # Each script routes output through a single Write-Status helper regardless.
         'PSAvoidUsingWriteHost'
     )
