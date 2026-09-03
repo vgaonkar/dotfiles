@@ -29,8 +29,8 @@ from macOS is listed under "Assumed, not verified" below.
 
 | ID | Sev | Defect | Fix | Verified |
 |----|-----|--------|-----|----------|
-| F1/S1 | CRITICAL | `-Vendor` was an unvalidated regex gating every delete. `''`, `'.'`, `'win'`, `'store'`, `'system'` each selected **every** driver package (`OriginalFileName` is a full DriverStore path). | `ValidateNotNullOrEmpty` + `ValidateScript`: pattern must compile and must not match a canary set of unrelated drivers. Match narrowed to `ProviderName` only. | 8 dangerous patterns rejected; 4 real vendor names accepted |
-| S2 | CRITICAL | Same over-broad match fed `DenyDeviceIDs` + `Retroactive=1` for every device. | Same validation gate. | as above |
+| F1/S1 | CRITICAL | `-Vendor` was an unvalidated regex gating every delete. `''`, `'.'`, `'win'`, `'store'`, `'system'` each selected **every** driver package (`OriginalFileName` is a full DriverStore path). | **SUPERSEDED by C1 below — this fix was inadequate.** Canary validation kept as a cheap filter; the real bound is now `-MaxPackage` + typed confirmation. Match narrowed to `ProviderName` only. | see C1 |
+| S2 | CRITICAL | Same over-broad match fed `DenyDeviceIDs` + `Retroactive=1` for every device. | Same gate as F1/S1 — see C1. | see C1 |
 | F2 | HIGH | `Get-WindowsDriver -Online -All` includes Microsoft **inbox** drivers, which then reached `pnputil /delete-driver /force`. | Dropped `-All`; added `Driver -like 'oem*.inf'` guard. | code inspection |
 | F5/W4 | HIGH | `Start-Transcript` does **not** capture `$Host.UI.WriteLine`, so `run.log` held only header + footer while the script twice told the user to read it. | `Write-Status` now uses `Write-Host` with a scoped `SuppressMessageAttribute`. | markers CAPTURED in a real script-file transcript |
 | W-2 | HIGH | Coloured branch read `$Host.UI.RawUI.BackgroundColor` with no `try/catch`, unlike Microsoft's `Write-Host`; would throw on a non-interactive host — including the fresh-machine PS 5.1 bootstrap. | Same fix removed all `RawUI` access. | `grep`: zero `RawUI` references remain |
@@ -78,9 +78,14 @@ from macOS is listed under "Assumed, not verified" below.
 
 ## Remaining accepted risks
 
-- **No interactive confirmation in `-Execute`.** The vendor guard now bounds the blast
-  radius, and the dry run shows the plan, but there is no "delete N packages?" prompt
-  and no `-WhatIf`. Accepted: the operator is the author's user, running deliberately.
+- ~~No interactive confirmation in `-Execute`.~~ **Resolved in round 2** — `-Execute`
+  now lists every matched package and requires the vendor name typed back, and
+  `-MaxPackage` refuses outright above the cap. There is still no native `-WhatIf`;
+  the `-Execute` gate serves that role.
+- **The final safety layer is a human reading a list.** `-MaxPackage` catches the wide
+  patterns automatically, but a pattern matching a handful of unrelated vendors passes
+  the cap and is caught only by the operator reading the provider names in the
+  confirmation prompt. Read it.
 - **Printers are removed without a per-queue backup**, but `RESTORE.md` now records
   name, driver, and port for each, which is enough to recreate them.
 - **Doc-accuracy nit:** the SPEC said "163 conversions across 7 files"; the true figure
