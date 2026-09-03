@@ -26,12 +26,30 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Write-Host trips PSScriptAnalyzer's PSAvoidUsingWriteHost. $Host.UI.WriteLine gives
+# the same coloured console output and is captured by Start-Transcript identically.
+function Write-Status {
+    param(
+        [string]$Message = '',
+        [string]$Color = ''
+    )
+    # RawUI reports -1 for its colours when there is no real console (redirected
+    # output, CI). $Host.UI.WriteLine rejects -1 as a foreground, so when no colour
+    # is requested use the uncoloured overload rather than the host's current one.
+    if ([string]::IsNullOrEmpty($Color)) {
+        $Host.UI.WriteLine($Message)
+    } else {
+        $Host.UI.WriteLine($Color, $Host.UI.RawUI.BackgroundColor, $Message)
+    }
+}
+
+
 # Configuration
 $GithubUser = "vgaonkar"
 $ChezmoiUrl = "https://get.chezmoi.io"
 
-Write-Host "🏠 Dotfiles Installer for Windows" -ForegroundColor Blue
-Write-Host ""
+Write-Status "🏠 Dotfiles Installer for Windows" 'Blue'
+Write-Status ""
 
 # Parity with Unix installer flag style
 if ($args -contains "--browser-login") {
@@ -39,11 +57,11 @@ if ($args -contains "--browser-login") {
 }
 
 if ($BrowserLogin) {
-    Write-Host "🔐 Browser-login bootstrap selected; handing off to scripts/bootstrap/install.ps1" -ForegroundColor Yellow
+    Write-Status "🔐 Browser-login bootstrap selected; handing off to scripts/bootstrap/install.ps1" 'Yellow'
     $bootstrapPath = Join-Path $PSScriptRoot "bootstrap\install.ps1"
 
     if (-not (Test-Path -Path $bootstrapPath)) {
-        Write-Host "❌ Bootstrap script not found: $bootstrapPath" -ForegroundColor Red
+        Write-Status "❌ Bootstrap script not found: $bootstrapPath" 'Red'
         exit 1
     }
 
@@ -51,8 +69,8 @@ if ($BrowserLogin) {
         & $bootstrapPath
         exit $LASTEXITCODE
     } catch {
-        Write-Host "❌ Bootstrap failed" -ForegroundColor Red
-        Write-Host $_.Exception.Message
+        Write-Status "❌ Bootstrap failed" 'Red'
+        Write-Status $_.Exception.Message
         exit 1
     }
 }
@@ -60,24 +78,24 @@ if ($BrowserLogin) {
 # Check if running as Administrator
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 if ($isAdmin) {
-    Write-Host "⚠️  Warning: Running as Administrator. Some features may not work correctly." -ForegroundColor Yellow
-    Write-Host "   It's recommended to run this as a regular user." -ForegroundColor Yellow
-    Write-Host ""
+    Write-Status "⚠️  Warning: Running as Administrator. Some features may not work correctly." 'Yellow'
+    Write-Status "   It's recommended to run this as a regular user." 'Yellow'
+    Write-Status ""
 }
 
 # Install chezmoi if not present
 if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
-    Write-Host "📦 Installing chezmoi..." -ForegroundColor Yellow
+    Write-Status "📦 Installing chezmoi..." 'Yellow'
     
     try {
         Invoke-Expression (Invoke-RestMethod -Uri $ChezmoiUrl)
     } catch {
-        Write-Host "❌ Failed to install chezmoi" -ForegroundColor Red
-        Write-Host $_.Exception.Message
+        Write-Status "❌ Failed to install chezmoi" 'Red'
+        Write-Status $_.Exception.Message
         exit 1
     }
 } else {
-    Write-Host "✓ chezmoi already installed" -ForegroundColor Green
+    Write-Status "✓ chezmoi already installed" 'Green'
 }
 
 # Add to PATH if needed
@@ -87,23 +105,23 @@ if (Test-Path "$localBin\chezmoi.exe") {
 }
 
 # Initialize and apply dotfiles
-Write-Host ""
-Write-Host "🚀 Initializing dotfiles..." -ForegroundColor Yellow
-Write-Host "Repository: https://github.com/$GithubUser/dotfiles" -ForegroundColor Blue
-Write-Host ""
+Write-Status ""
+Write-Status "🚀 Initializing dotfiles..." 'Yellow'
+Write-Status "Repository: https://github.com/$GithubUser/dotfiles" 'Blue'
+Write-Status ""
 
 try {
     chezmoi init --apply $GithubUser
     
-    Write-Host ""
-    Write-Host "✅ Dotfiles installed successfully!" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Next steps:" -ForegroundColor Blue
-    Write-Host "  1. Restart PowerShell or run: . \$PROFILE"
-    Write-Host "  2. Review the installed configurations"
-    Write-Host "  3. Read the docs: chezmoi cd; Get-Content docs\01-quick-start.md"
+    Write-Status ""
+    Write-Status "✅ Dotfiles installed successfully!" 'Green'
+    Write-Status ""
+    Write-Status "Next steps:" 'Blue'
+    Write-Status "  1. Restart PowerShell or run: . \$PROFILE"
+    Write-Status "  2. Review the installed configurations"
+    Write-Status "  3. Read the docs: chezmoi cd; Get-Content docs\01-quick-start.md"
 } catch {
-    Write-Host "❌ Installation failed" -ForegroundColor Red
-    Write-Host $_.Exception.Message
+    Write-Status "❌ Installation failed" 'Red'
+    Write-Status $_.Exception.Message
     exit 1
 }

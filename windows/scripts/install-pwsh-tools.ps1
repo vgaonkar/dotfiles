@@ -6,9 +6,16 @@
 function Write-Status {
     param(
         [string]$Message = '',
-        [string]$Color = $Host.UI.RawUI.ForegroundColor
+        [string]$Color = ''
     )
-    $Host.UI.WriteLine($Color, $Host.UI.RawUI.BackgroundColor, $Message)
+    # RawUI reports -1 for its colours when there is no real console (redirected
+    # output, CI). $Host.UI.WriteLine rejects -1 as a foreground, so when no colour
+    # is requested use the uncoloured overload rather than the host's current one.
+    if ([string]::IsNullOrEmpty($Color)) {
+        $Host.UI.WriteLine($Message)
+    } else {
+        $Host.UI.WriteLine($Color, $Host.UI.RawUI.BackgroundColor, $Message)
+    }
 }
 
 

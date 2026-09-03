@@ -5,11 +5,28 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-function Write-Header([string]$Message) { Write-Host $Message -ForegroundColor Blue }
-function Write-Info([string]$Message) { Write-Host "INFO $Message" -ForegroundColor Blue }
-function Write-Ok([string]$Message) { Write-Host "OK   $Message" -ForegroundColor Green }
-function Write-Warn([string]$Message) { Write-Host "WARN $Message" -ForegroundColor Yellow }
-function Write-Err([string]$Message) { Write-Host "ERR  $Message" -ForegroundColor Red }
+# Write-Host trips PSScriptAnalyzer's PSAvoidUsingWriteHost. $Host.UI.WriteLine gives
+# the same coloured console output and is captured by Start-Transcript identically.
+function Write-Status {
+    param(
+        [string]$Message = '',
+        [string]$Color = ''
+    )
+    # RawUI reports -1 for its colours when there is no real console (redirected
+    # output, CI). $Host.UI.WriteLine rejects -1 as a foreground, so when no colour
+    # is requested use the uncoloured overload rather than the host's current one.
+    if ([string]::IsNullOrEmpty($Color)) {
+        $Host.UI.WriteLine($Message)
+    } else {
+        $Host.UI.WriteLine($Color, $Host.UI.RawUI.BackgroundColor, $Message)
+    }
+}
+
+function Write-Header([string]$Message) { Write-Status $Message 'Blue' }
+function Write-Info([string]$Message) { Write-Status "INFO $Message" 'Blue' }
+function Write-Ok([string]$Message) { Write-Status "OK   $Message" 'Green' }
+function Write-Warn([string]$Message) { Write-Status "WARN $Message" 'Yellow' }
+function Write-Err([string]$Message) { Write-Status "ERR  $Message" 'Red' }
 
 trap [System.Management.Automation.PipelineStoppedException] {
     Write-Warn "Cancelled. You can re-run this script safely."
@@ -21,7 +38,7 @@ trap [System.OperationCanceledException] {
     exit 1
 }
 
-function To-Bool([string]$Value) {
+function ConvertTo-Boolean([string]$Value) {
     if ($null -eq $Value) { return $false }
     switch ($Value.ToLowerInvariant()) {
         "true" { return $true }
@@ -32,7 +49,7 @@ function To-Bool([string]$Value) {
     }
 }
 
-function Ensure-EnvDefault([string]$Name, [string]$DefaultValue) {
+function Initialize-EnvDefault([string]$Name, [string]$DefaultValue) {
     $current = $null
     try {
         $item = Get-Item -Path ("Env:{0}" -f $Name) -ErrorAction SilentlyContinue
@@ -51,7 +68,7 @@ function Ensure-EnvDefault([string]$Name, [string]$DefaultValue) {
     return $current
 }
 
-function Ensure-Chezmoi {
+function Install-Chezmoi {
     if (Get-Command chezmoi -ErrorAction SilentlyContinue) {
         Write-Ok "chezmoi already installed"
         return
@@ -86,7 +103,7 @@ function Install-GhWithScoop {
     return $true
 }
 
-function Add-ToPathIfExeExists([string]$Dir, [string]$ExeName) {
+function Add-ExeDirectoryToPath([string]$Dir, [string]$ExeName) {
     if ([string]::IsNullOrEmpty($Dir)) { return $false }
 
     $exePath = $null
@@ -120,7 +137,7 @@ function Add-ToPathIfExeExists([string]$Dir, [string]$ExeName) {
     return $true
 }
 
-function Refresh-PathForGh {
+function Update-PathForGh {
     $changed = $false
     $candidateDirs = @()
 
@@ -139,18 +156,19 @@ function Refresh-PathForGh {
 
     foreach ($dir in $candidateDirs) {
         try {
-            if (Add-ToPathIfExeExists -Dir $dir -ExeName "gh.exe") {
+            if (Add-ExeDirectoryToPath -Dir $dir -ExeName "gh.exe") {
                 $changed = $true
             }
         } catch {
-            # best-effort; ignore
+            # Best-effort PATH discovery -- a bad candidate dir must not abort the loop.
+            Write-Verbose "Skipping PATH candidate '$dir': $($_.Exception.Message)"
         }
     }
 
     return $changed
 }
 
-function Ensure-Gh {
+function Install-Gh {
     if (Get-Command gh -ErrorAction SilentlyContinue) {
         Write-Ok "gh already installed"
         return
@@ -178,7 +196,7 @@ function Ensure-Gh {
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         $refreshed = $false
         try {
-            $refreshed = (Refresh-PathForGh)
+            $refreshed = (Update-PathForGh)
         } catch {
             $refreshed = $false
         }
@@ -198,7 +216,7 @@ function Test-GhAuth([string]$Hostname) {
     return ($LASTEXITCODE -eq 0)
 }
 
-function Ensure-GhAuth([string]$Hostname, [bool]$Headless, [bool]$NonInteractive) {
+function Initialize-GhAuth([string]$Hostname, [bool]$Headless, [bool]$NonInteractive) {
     if (Test-GhAuth -Hostname $Hostname) {
         Write-Ok "gh authenticated for $Hostname"
         return
@@ -238,7 +256,7 @@ function Ensure-GhAuth([string]$Hostname, [bool]$Headless, [bool]$NonInteractive
     Write-Ok "gh authenticated"
 }
 
-function Maybe-SetupGit([string]$Hostname, [bool]$Skip) {
+function Initialize-GitIntegration([string]$Hostname, [bool]$Skip) {
     if ($Skip) {
         Write-Warn "Skipping 'gh auth setup-git' (DOTFILES_NO_GH_SETUP_GIT=true)"
         return
@@ -251,7 +269,7 @@ function Maybe-SetupGit([string]$Hostname, [bool]$Skip) {
     Write-Ok "gh auth setup-git complete"
 }
 
-function Run-Chezmoi {
+function Invoke-Chezmoi {
     Write-Info "Applying dotfiles with chezmoi"
 
     $sourcePath = $null
@@ -306,7 +324,7 @@ function Run-Chezmoi {
                     $p = Start-Process -FilePath "chezmoi" -ArgumentList @("init", "--apply", "vgaonkar", "--override-data", $overrideData) -NoNewWindow -Wait -PassThru -RedirectStandardError $errPath
                 } else {
                     if (-not [string]::IsNullOrEmpty($errText)) {
-                        Write-Host $errText
+                        Write-Status $errText
                     }
                 }
 
@@ -323,9 +341,9 @@ function Run-Chezmoi {
     Write-Ok "chezmoi apply complete"
 }
 
-$DotfilesGithubHost = Ensure-EnvDefault -Name "DOTFILES_GITHUB_HOST" -DefaultValue "github.com"
-$DotfilesGitProtocol = Ensure-EnvDefault -Name "DOTFILES_GIT_PROTOCOL" -DefaultValue "https"
-$DotfilesNoGhSetupGit = Ensure-EnvDefault -Name "DOTFILES_NO_GH_SETUP_GIT" -DefaultValue "false"
+$DotfilesGithubHost = Initialize-EnvDefault -Name "DOTFILES_GITHUB_HOST" -DefaultValue "github.com"
+$DotfilesGitProtocol = Initialize-EnvDefault -Name "DOTFILES_GIT_PROTOCOL" -DefaultValue "https"
+$DotfilesNoGhSetupGit = Initialize-EnvDefault -Name "DOTFILES_NO_GH_SETUP_GIT" -DefaultValue "false"
 
 Write-Header "Dotfiles Bootstrap (Windows)"
 Write-Info "GitHub host: $DotfilesGithubHost"
@@ -348,10 +366,10 @@ $nonInteractive = (-not $hasTty) -or $ci -or $debianNonInteractive
 
 $headless = (([string]$env:BROWSER).ToLowerInvariant() -eq "false") -or (([string]$env:GH_BROWSER).ToLowerInvariant() -eq "none")
 
-Ensure-Chezmoi
-Ensure-Gh
-Ensure-GhAuth -Hostname $DotfilesGithubHost -Headless:$headless -NonInteractive:$nonInteractive
-Maybe-SetupGit -Hostname $DotfilesGithubHost -Skip:(To-Bool $DotfilesNoGhSetupGit)
-Run-Chezmoi
+Install-Chezmoi
+Install-Gh
+Initialize-GhAuth -Hostname $DotfilesGithubHost -Headless:$headless -NonInteractive:$nonInteractive
+Initialize-GitIntegration -Hostname $DotfilesGithubHost -Skip:(ConvertTo-Boolean $DotfilesNoGhSetupGit)
+Invoke-Chezmoi
 
 Write-Ok "Bootstrap complete"

@@ -2,11 +2,29 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "🔍 Linting PowerShell Scripts..." -ForegroundColor Blue
+# Write-Host trips PSScriptAnalyzer's PSAvoidUsingWriteHost. $Host.UI.WriteLine gives
+# the same coloured console output and is captured by Start-Transcript identically.
+function Write-Status {
+    param(
+        [string]$Message = '',
+        [string]$Color = ''
+    )
+    # RawUI reports -1 for its colours when there is no real console (redirected
+    # output, CI). $Host.UI.WriteLine rejects -1 as a foreground, so when no colour
+    # is requested use the uncoloured overload rather than the host's current one.
+    if ([string]::IsNullOrEmpty($Color)) {
+        $Host.UI.WriteLine($Message)
+    } else {
+        $Host.UI.WriteLine($Color, $Host.UI.RawUI.BackgroundColor, $Message)
+    }
+}
+
+
+Write-Status "🔍 Linting PowerShell Scripts..." 'Blue'
 
 if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
-    Write-Host "Error: 'PSScriptAnalyzer' module is not installed." -ForegroundColor Red
-    Write-Host "Please install it with: Install-Module -Name PSScriptAnalyzer -Scope CurrentUser"
+    Write-Status "Error: 'PSScriptAnalyzer' module is not installed." 'Red'
+    Write-Status "Please install it with: Install-Module -Name PSScriptAnalyzer -Scope CurrentUser"
     exit 1
 }
 
@@ -16,11 +34,11 @@ $searchPaths = @('scripts', 'windows/scripts') | Where-Object { Test-Path $_ }
 $files = Get-ChildItem -Path $searchPaths -Recurse -Include *.ps1
 
 if ($files.Count -eq 0) {
-    Write-Host "No PowerShell scripts found to lint." -ForegroundColor Green
+    Write-Status "No PowerShell scripts found to lint." 'Green'
     exit 0
 }
 
-Write-Host "Found $($files.Count) script(s) to check."
+Write-Status "Found $($files.Count) script(s) to check."
 
 $settingsPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "PSScriptAnalyzerSettings.psd1"
 
@@ -33,9 +51,9 @@ $results = foreach ($file in $files) {
 
 if ($results) {
     $results | Format-Table -AutoSize
-    Write-Host "❌ PSScriptAnalyzer found issues." -ForegroundColor Red
+    Write-Status "❌ PSScriptAnalyzer found issues." 'Red'
     exit 1
 } else {
-    Write-Host "✅ PSScriptAnalyzer passed!" -ForegroundColor Green
+    Write-Status "✅ PSScriptAnalyzer passed!" 'Green'
     exit 0
 }
