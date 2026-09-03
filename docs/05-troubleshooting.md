@@ -60,6 +60,30 @@ If you cannot push changes to your fork:
 - **XCode Tools**: Ensure they are installed: `xcode-select --install`.
 - **Homebrew**: If `brew` is missing, the installation script should handle it, but you may need to add it to your PATH manually on Apple Silicon (M1/M2/M3) chips.
 
+### Windows
+
+- **A driver update installs forever and nags on every shutdown**: Windows Update
+  shows a vendor driver (e.g. Canon `2.90.2.30`) as pending, the install fails every
+  time, and Windows offers to "update and shut down" on every shutdown. The cause is
+  normally an orphaned vendor driver package in the driver store — the update targets
+  a device whose old package is stale, the install fails (usually `0x800f020b`), and
+  the pending-reboot flag never clears.
+
+  Run from an **elevated** PowerShell:
+
+  ```powershell
+  # Diagnose only — nothing is changed
+  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon
+
+  # Apply the fix, and stop Windows Update re-offering drivers
+  .\windows\scripts\fix-stuck-driver-update.ps1 -Vendor Canon -Execute -DisableDriverUpdate
+  ```
+
+  The script backs up every driver package it touches (and verifies the backup landed)
+  before deleting anything. Backups and a transcript go to
+  `%USERPROFILE%\dotfiles-backups\driver-fix\<timestamp>\`. Reboot afterwards, then
+  install the driver from the vendor's own site rather than Windows Update.
+
 ## Where to Get Help
 
 - **Check Logs**: Look at any error output in your terminal.

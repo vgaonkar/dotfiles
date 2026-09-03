@@ -19,6 +19,7 @@ Windows-specific configuration files that are NOT managed by Chezmoi (excluded v
 | File | Description |
 |------|-------------|
 | `scripts/install-wezterm.ps1` | PowerShell script to install WezTerm on Windows |
+| `scripts/fix-stuck-driver-update.ps1` | Repairs a Windows Update driver stuck in a failing install loop (orphaned driver package + stale update state). Dry run by default; `-Execute` applies. Backs up and verifies before any delete. |
 | `AppData/.../LocalState/settings.json` | Windows Terminal settings (theme, keybindings, profiles) |
 
 ## For AI Agents
