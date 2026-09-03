@@ -10,7 +10,10 @@ if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
     exit 1
 }
 
-$files = Get-ChildItem -Path scripts -Recurse -Include *.ps1
+# windows/ is excluded from Chezmoi, but windows/scripts/*.ps1 are still repo code and
+# windows/AGENTS.md requires them to pass PSScriptAnalyzer -- lint them here too.
+$searchPaths = @('scripts', 'windows/scripts') | Where-Object { Test-Path $_ }
+$files = Get-ChildItem -Path $searchPaths -Recurse -Include *.ps1
 
 if ($files.Count -eq 0) {
     Write-Host "No PowerShell scripts found to lint." -ForegroundColor Green
@@ -19,8 +22,14 @@ if ($files.Count -eq 0) {
 
 Write-Host "Found $($files.Count) script(s) to check."
 
-$settingsPath = Join-Path $PSScriptRoot ".." "PSScriptAnalyzerSettings.psd1"
-$results = Invoke-ScriptAnalyzer -Path $files.FullName -Settings $settingsPath -Recurse
+$settingsPath = Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "PSScriptAnalyzerSettings.psd1"
+
+# -Path takes a single string, so passing $files.FullName (an array) threw
+# "Cannot convert 'System.Object[]' to the type 'System.String'" and the lint never
+# ran. Analyse one file at a time and collect the results.
+$results = foreach ($file in $files) {
+    Invoke-ScriptAnalyzer -Path $file.FullName -Settings $settingsPath
+}
 
 if ($results) {
     $results | Format-Table -AutoSize
