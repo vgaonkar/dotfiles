@@ -42,8 +42,17 @@ repair component store.
 ## Change 2 — `Write-Host` → `Write-Status` across all 7 `.ps1` files
 
 `PSAvoidUsingWriteHost` is in `PSScriptAnalyzerSettings.psd1`'s `IncludeRules`.
-163 `Write-Host` calls were converted to a `Write-Status` helper built on
-`$Host.UI.WriteLine`.
+**169** `Write-Host` calls across **6** files were converted to a `Write-Status`
+helper. (This spec originally said "163 across 7" — corrected by the audit: the
+count was wrong, and `fix-stuck-driver-update.ps1` was authored using `Write-Status`
+from the start, so it never contained a `Write-Host` to convert.)
+
+> **Resolved after audit.** The helper was first built on `$Host.UI.WriteLine`. Two
+> HIGH findings killed that approach: `Start-Transcript` does not capture it (W4), and
+> its coloured branch read `$Host.UI.RawUI.BackgroundColor` unguarded, which throws on
+> a real Windows non-interactive host where Microsoft's own `Write-Host` catches
+> `HostException`. The helper now calls `Write-Host` with a scoped
+> `SuppressMessageAttribute`, which satisfies W3 and W4 and keeps the lint clean.
 
 ### Invariants
 
