@@ -56,6 +56,14 @@
 .PARAMETER SkipUpdateReset
     Skip phase 4 (SoftwareDistribution / catroot2 reset).
 
+.PARAMETER MaxPackage
+    Refuse to run if more than this many driver packages match (default 5). This is
+    the real blast-radius bound -- $Vendor is a free-text regex and no validation of
+    the pattern itself can be trusted to limit what it selects.
+
+.PARAMETER Force
+    Skip the typed confirmation before deleting. Does NOT bypass -MaxPackage.
+
 .PARAMETER BackupRoot
     Where driver exports, registry exports, snapshots, and run logs are written.
 
@@ -64,8 +72,9 @@
     Dry run against Canon. Shows the diagnosis and every action it would take.
 
 .EXAMPLE
-    .\fix-stuck-driver-update.ps1 -Execute -BlockByHardwareId
-    Full fix, blocking only the Canon device from being reinstalled.
+    .\fix-stuck-driver-update.ps1 -Execute
+    Applies the fix. Lists the matched packages and asks you to type the vendor name
+    before anything is deleted.
 
 .EXAMPLE
     .\fix-stuck-driver-update.ps1 -Verify
@@ -81,15 +90,24 @@
     driver from the vendor's own site -- not from Windows Update.
 
     Exit codes: 0 ok, 1 not elevated / bad arguments, 2 backup verification failed,
-    3 -Verify found the fix did not hold.
+    3 -Verify found the fix did not hold, 4 aborted before any change (too many
+    packages matched, or the operator declined the confirmation).
 #>
 
 [CmdletBinding()]
 param(
-    # $Vendor is used as a REGEX and decides everything that gets deleted, so it is
-    # validated hard: it must be a compilable pattern, and it must not match a canary
-    # set of strings that have nothing to do with any one vendor. Without this,
-    # -Vendor '' or -Vendor '.' selects every driver package on the machine.
+    # $Vendor is a REGEX and decides everything that gets deleted.
+    #
+    # The canary check below is a cheap early filter for the obvious mistakes
+    # (-Vendor '', '.', 'win', 'store'). It is NOT the safety bound and must not be
+    # trusted as one: an adversarial review showed that a single letter absent from
+    # the canary strings (b g h j q z) passes it while still matching Brother, HP,
+    # Logitech, Ricoh and Zebra, and a negative-lookahead pattern passes it while
+    # matching every third-party vendor on the machine.
+    #
+    # The real bound is enforced at the point of destruction: -MaxPackage caps how
+    # many packages a single run may delete, and -Execute requires typed confirmation
+    # of the exact list. See Confirm-PurgeScope.
     [ValidateNotNullOrEmpty()]
     [ValidateScript({
         # Capture first: $_ is rebound inside the Where-Object below.
@@ -118,6 +136,9 @@ param(
     [switch]$RepairImage,
     [switch]$SkipDriverPurge,
     [switch]$SkipUpdateReset,
+    [ValidateRange(1, 1000)]
+    [int]$MaxPackage = 5,
+    [switch]$Force,
     [string]$BackupRoot = "$env:USERPROFILE\dotfiles-backups\driver-fix"
 )
 
@@ -236,7 +257,24 @@ function Get-VendorDriverPackage {
         # returned. The oem*.inf guard is a second belt on the same trousers.
         # Match ProviderName only -- OriginalFileName is a full DriverStore path, so
         # matching it would make 'win', 'store' or 'system' select every package.
-        $packages = Get-WindowsDriver -Online |
+        $all = @(Get-WindowsDriver -Online)
+
+        # Fail loud if the property names are not what we expect. Microsoft's docs
+        # describe the output only as an opaque type, so these names are an
+        # assumption; if one is wrong, the filter silently matches nothing and an
+        # empty result would read as "clean" rather than "the query is broken".
+        if ($all.Count -gt 0) {
+            $sample = $all[0]
+            foreach ($prop in @('Driver', 'ProviderName')) {
+                if ($null -eq $sample.PSObject.Properties[$prop]) {
+                    Write-Warn ("Get-WindowsDriver output has no '$prop' property -- " +
+                                'this script cannot identify packages on this build. ' +
+                                'Treat the result below as UNRELIABLE.')
+                }
+            }
+        }
+
+        $packages = $all |
             Where-Object { $_.ProviderName -match $Match -and $_.Driver -like 'oem*.inf' } |
             Select-Object Driver, OriginalFileName, ProviderName, ClassName, Version, Date
     } catch {
@@ -685,7 +723,16 @@ function Disable-DeviceInstall {
     if ($null -ne $props) {
         $numbered = @($props.PSObject.Properties | Where-Object { $_.Name -match '^\d+$' })
         $existing = @($numbered | ForEach-Object { $_.Value })
-        $usedIndex += @($numbered | ForEach-Object { [int]$_.Name })
+        # [long], and skipped on overflow: a value named "999999999999" would throw on
+        # an [int] cast and abort the function midway through its registry writes.
+        foreach ($n in $numbered) {
+            $parsed = 0L
+            if ([long]::TryParse($n.Name, [ref]$parsed)) {
+                $usedIndex += $parsed
+            } else {
+                Write-Warn "ignoring unparseable DenyDeviceIDs entry name '$($n.Name)'"
+            }
+        }
     }
 
     # Continue from the HIGHEST existing number, not the count. Entries are not
@@ -738,6 +785,45 @@ function Invoke-ImageRepair {
     } else {
         Write-Warn "sfc exited $sfcCode -- see $env:SystemRoot\Logs\CBS\CBS.log"
     }
+}
+
+function Confirm-PurgeScope {
+    param([object[]]$Package = @())
+
+    # The blast-radius bound. $Vendor is a free-text regex and no validation of the
+    # pattern itself can be trusted to bound it (see the param block), so the count
+    # and the actual list are checked here, immediately before anything is deleted.
+    if ($Package.Count -eq 0) { return $true }
+
+    Write-Status ''
+    Write-Status "   $($Package.Count) package(s) matched '$Vendor' and will be DELETED:" 'Yellow'
+    foreach ($pkg in $Package) {
+        Write-Status "     $($pkg.Driver)  $($pkg.ProviderName)  v$($pkg.Version)" 'White'
+    }
+
+    if ($Package.Count -gt $MaxPackage) {
+        Write-Status ''
+        Write-Status "   REFUSING: $($Package.Count) packages exceeds -MaxPackage ($MaxPackage)." 'Red'
+        Write-Status "   '$Vendor' is matching more than one vendor's drivers." 'Red'
+        Write-Status '   Narrow the pattern, or raise -MaxPackage if this is genuinely intended.' 'Yellow'
+        return $false
+    }
+
+    if (-not $Execute) { return $true }
+
+    if ($Force) {
+        Write-Status '   -Force supplied; skipping confirmation.' 'DarkGray'
+        return $true
+    }
+
+    Write-Status ''
+    $answer = Read-Host "   Type the vendor name ('$Vendor') to confirm deletion, or anything else to abort"
+    if ($answer -ceq $Vendor) {
+        Write-Status '   Confirmed.' 'Green'
+        return $true
+    }
+    Write-Status '   Aborted -- nothing was deleted.' 'Yellow'
+    return $false
 }
 
 function Save-RestoreNote {
@@ -801,7 +887,13 @@ function Save-RestoreNote {
         }
         $lines += @("", '```powershell')
         foreach ($p in $Printer) {
-            $lines += "Add-Printer -Name '$($p.Name)' -DriverName '$($p.DriverName)' -PortName '$($p.PortName)'"
+            # Double any apostrophe: a printer named "Bob's Printer" would otherwise
+            # terminate the single-quoted string and produce a broken (or injectable)
+            # command in a file the operator is told to copy and run elevated.
+            $n = "$($p.Name)" -replace "'", "''"
+            $d = "$($p.DriverName)" -replace "'", "''"
+            $t = "$($p.PortName)" -replace "'", "''"
+            $lines += "Add-Printer -Name '$n' -DriverName '$d' -PortName '$t'"
         }
         $lines += '```'
     }
@@ -826,16 +918,35 @@ function Test-PolicySupport {
     # Microsoft documents both for Pro / Enterprise / Education / IoT Enterprise --
     # Windows Home is NOT listed. On Home the registry write succeeds and is then
     # silently ignored, which would leave the operator believing they are protected.
-    $edition = $null
+    # EditionID, not Win32_OperatingSystem.Caption: Caption is LOCALISED, so a French
+    # or Chinese Home install does not contain the string 'Home' and would silently
+    # skip this warning -- the dangerous direction of the error. EditionID is an
+    # invariant identifier; Home ships as Core / CoreN / CoreSingleLanguage /
+    # CoreCountrySpecific.
+    $editionId = $null
+    $caption = $null
     try {
-        $edition = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).Caption
+        $cv = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' `
+            -ErrorAction Stop
+        $editionId = $cv.EditionID
     } catch {
-        Write-Status "   (could not read Windows edition: $($_.Exception.Message))" 'Yellow'
+        Write-Status "   (could not read EditionID: $($_.Exception.Message))" 'Yellow'
+    }
+    try {
+        $caption = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).Caption
+    } catch {
+        # Cosmetic only -- EditionID above is what the decision uses.
+        Write-Verbose "Could not read OS caption: $($_.Exception.Message)"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($editionId)) {
+        Write-Status '   Could not determine the Windows edition. If this is Home, the' 'Yellow'
+        Write-Status '   policy keys below will be written and then silently ignored.' 'Yellow'
         return $true
     }
 
-    Write-Status "   Edition: $edition" 'DarkGray'
-    if ($edition -match 'Home') {
+    Write-Status "   Edition: $editionId$(if ($caption) { " ($caption)" })" 'DarkGray'
+    if ($editionId -match '^Core') {
         Write-Status ''
         Write-Status '   WARNING: this looks like a Home edition. The Group Policy keys this' 'Red'
         Write-Status '   phase writes are documented for Pro / Enterprise / Education / IoT' 'Red'
@@ -921,8 +1032,26 @@ function Test-FixResult {
     # so after a reset the history is empty and a naive "no new failures" test would
     # always PASS, including in the exact case it exists to catch. Detect the reset
     # and report SKIPPED rather than a green PASS built on missing evidence.
-    $historyReset = @(Get-ChildItem -Path "$env:SystemRoot\SoftwareDistribution.old.*" `
-        -Directory -ErrorAction SilentlyContinue).Count -gt 0
+    # Only a reset performed AFTER the baseline invalidates the comparison. Testing
+    # for the mere existence of a .old.* folder makes this check dead forever, since
+    # the folder is never removed -- so an unrelated reset from months ago, or this
+    # script's own previous run, would permanently suppress the check.
+    $historyReset = $false
+    $baselineTime = [datetime]::MinValue
+    if ($null -ne $baseline -and $baseline.Data.TakenAt) {
+        try {
+            $baselineTime = [datetime]$baseline.Data.TakenAt
+        } catch {
+            # Unparseable timestamp: MinValue makes any .old folder count as a reset,
+            # which errs toward SKIP rather than a PASS on missing evidence.
+            Write-Verbose "Could not parse baseline TakenAt: $($_.Exception.Message)"
+        }
+    }
+    $oldDirs = @(Get-ChildItem -Path "$env:SystemRoot\SoftwareDistribution.old.*" `
+        -Directory -ErrorAction SilentlyContinue)
+    foreach ($d in $oldDirs) {
+        if ($d.CreationTime -ge $baselineTime) { $historyReset = $true; break }
+    }
 
     if ($historyReset) {
         Write-Status '     SKIP  update history was reset by the fix -- cannot compare.' 'Yellow'
@@ -1036,12 +1165,17 @@ try {
     $diagnosis = Get-Diagnosis -Match $Vendor
     Show-Diagnosis -Diagnosis $diagnosis
 
+    $packages = @($diagnosis.DriverPackage)
+
+    # Both artefacts are written for EVERY -Execute run, before any phase can change
+    # anything. A -SkipDriverPurge -BlockByHardwareId run still installs a deny list,
+    # which is the single hardest change to diagnose later -- it must not be the one
+    # run without an undo guide.
     if ($Execute) {
         Write-Status ''
         Save-Diagnosis -Diagnosis $diagnosis -Path (Join-Path $runDir 'diagnosis.json')
+        Save-RestoreNote -Package $packages -Printer $diagnosis.Printer -Destination $runDir
     }
-
-    $packages = @($diagnosis.DriverPackage)
 
     # -- Phase 2 + 3: back up, then purge -------------------------------------
     if ($SkipDriverPurge) {
@@ -1052,18 +1186,20 @@ try {
         Write-Phase 'Phase 3/6  Purge driver packages  [nothing to purge]'
     } else {
         Write-Phase 'Phase 2/6  Back up driver packages'
+
+        # Blast-radius gate, before the backup and long before the delete.
+        if (-not (Confirm-PurgeScope -Package $packages)) {
+            Write-Status ''
+            Write-Status 'Aborting. Nothing was changed.' 'Yellow'
+            exit 4
+        }
+
         $driverBackup = Join-Path $runDir 'drivers'
         $backupOk = Export-VendorDriver -Package $packages -Destination $driverBackup
         if (-not $backupOk) {
             Write-Status ''
             Write-Status 'Aborting before any deletion. Backup verification failed.' 'Red'
             exit 2
-        }
-
-        # Written BEFORE the purge, so the undo guide exists even if a later phase
-        # fails or the operator interrupts the run.
-        if ($Execute) {
-            Save-RestoreNote -Package $packages -Printer $diagnosis.Printer -Destination $runDir
         }
 
         Write-Phase 'Phase 3/6  Purge driver packages'

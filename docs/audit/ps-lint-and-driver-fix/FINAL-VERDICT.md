@@ -86,10 +86,40 @@ from macOS is listed under "Assumed, not verified" below.
 - **Doc-accuracy nit:** the SPEC said "163 conversions across 7 files"; the true figure
   is 169 across 6 (the driver script was born using `Write-Status`).
 
+## Phase 3 — adversarial pass over the fixes (round 2)
+
+An adversarial critic and an invariant verifier re-examined the 14 fixes above.
+The verifier returned PASS on every invariant it could test (W3 obsolete by design;
+W1/W4-proof/R4 CANNOT-VERIFY without Windows). The critic broke one fix outright.
+
+| ID | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| C1 | **CRITICAL** | **The vendor canary guard was security theatre.** The 5 canary strings happen not to contain the letters `b g h j q z`, so `-Vendor 'h'` passed and matched Brother, HP, Logitech, Ricoh, Zebra. A negative-lookahead pattern passed and matched 31 of 31 real vendors. The guard only ever caught the naive mistakes it was written against. | Blast radius is now bounded **at the point of destruction**, not by pattern inspection: `-MaxPackage` (default 5) refuses the run, and `-Execute` requires the operator to **type the vendor name** after seeing the exact package list. The canary is kept, demoted in comments to a cheap early filter. |
+| C2 | HIGH | `RESTORE.md` was written only in the purge branch, so the `-SkipDriverPurge -BlockByHardwareId` run — the script's own recommended step 6, and the hardest change to diagnose later — produced no undo guide while the summary pointed at one. | Hoisted: written for every `-Execute` run before any phase acts. |
+| C3 | MEDIUM | `Test-PolicySupport` matched `'Home'` against `Win32_OperatingSystem.Caption`, which is **localised**. A French or Chinese Home user got no warning — the dangerous direction. | Uses `EditionID` (invariant; Home ships as `Core*`), with the caption shown only as a label. |
+| C4 | MEDIUM | The `-Verify` history check tested for the mere existence of a `SoftwareDistribution.old.*` folder, which is never removed — so it went permanently dead after the first run. | Only a `.old` folder newer than the baseline counts as a reset. |
+| C5 | LOW | `RESTORE.md` emitted unescaped single quotes; a printer named `Bob's Printer` broke (or could inject into) a command the operator is told to run elevated. | Apostrophes doubled. |
+| C6 | LOW | `[int]` cast on a `DenyDeviceIDs` entry name would throw on an oversized value, aborting mid-registry-write. | `[long]::TryParse`, unparseable names skipped with a warning. |
+| C7 | LOW | If `Get-WindowsDriver`'s property names are wrong (the top assumed-not-verified risk), the filter silently matches nothing and reads as "clean". | Fails loud: warns that the result is unreliable if `Driver`/`ProviderName` are absent. |
+
+### Honest note on C1
+
+`-MaxPackage` alone does not fully solve it: `-Vendor 'h'` matches exactly 5 packages
+in the test set and therefore passes the cap. The second layer is what catches it —
+`-Execute` prints every matched package with its provider name and requires the vendor
+name typed back. That is a **human** check, not an automated one.
+
+Verified: the confirmation fails **closed** in every non-interactive case (stdin
+closed, empty pipe, wrong answer all abort; only the exact vendor name proceeds), so
+it cannot be silently auto-answered by a scheduled task or a piped invocation.
+
+---
+
 ## Recommended execution path
 
 1. Dry run: `.\fix-stuck-driver-update.ps1 -Vendor Canon`
-2. Read the plan, confirm only Canon packages are listed.
+2. Read the plan. **Confirm only Canon packages are listed** — this is the real
+   safety check, and the script will make you type the vendor name to proceed.
 3. `.\fix-stuck-driver-update.ps1 -Vendor Canon -Execute`
 4. Reboot. `.\fix-stuck-driver-update.ps1 -Vendor Canon -Verify`
 5. Install Canon's driver from Canon's site.

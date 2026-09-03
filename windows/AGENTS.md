@@ -35,8 +35,16 @@ Windows-specific configuration files that are NOT managed by Chezmoi (excluded v
 
 - PowerShell scripts: `pwsh scripts/lint.ps1` (requires PSScriptAnalyzer module).
   This directory is included in the lint glob. All files here are currently clean;
-  keep them that way. `Write-Host` trips `PSAvoidUsingWriteHost` — use the
-  `Write-Status` helper (`$Host.UI.WriteLine`) that each script defines instead.
+  keep them that way. Call the `Write-Status` helper each script defines rather than
+  `Write-Host` directly — the helper carries a scoped `SuppressMessageAttribute` for
+  `PSAvoidUsingWriteHost`, so the rule stays enforced everywhere except that one
+  function.
+
+  Do **not** "fix" the helper by switching it to `$Host.UI.WriteLine`. That was tried
+  and reverted: `Start-Transcript` does not capture `$Host.UI.WriteLine`, which
+  silently empties every run log, and its colour path reads `$Host.UI.RawUI`, which
+  throws on a non-interactive Windows host where `Write-Host` handles the same case
+  internally. See `docs/audit/ps-lint-and-driver-fix/FINAL-VERDICT.md`.
 - Windows Terminal settings: validate JSON syntax
 
 ### Common Patterns
