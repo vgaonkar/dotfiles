@@ -8,17 +8,15 @@
 $ErrorActionPreference = "Stop"
 
 # Write-Host is the only console writer Start-Transcript captures ($Host.UI.WriteLine
-# is not), so the analyzer rule against it is suppressed on this single helper.
+# is not). PSAvoidUsingWriteHost is switched off in PSScriptAnalyzerSettings.psd1.
 function Write-Status {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
-        Justification = 'Write-Host is the only console writer captured by Start-Transcript. Confined to this helper.')]
     param(
         [string]$Message = '',
         [string]$Color = ''
     )
     # Write-Host, not $Host.UI.WriteLine: Start-Transcript captures Write-Host but
-    # NOT $Host.UI.WriteLine, so the run log would otherwise be empty. Verified by
-    # test on pwsh 7.6.5. PSAvoidUsingWriteHost is suppressed for this one function.
+    # NOT $Host.UI.WriteLine, so the run log would otherwise be empty (verified on
+    # pwsh 7.6.5). Route all output through here so there is one place to change.
     if ([string]::IsNullOrEmpty($Color)) {
         Write-Host $Message
     } else {
