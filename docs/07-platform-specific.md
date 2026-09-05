@@ -79,6 +79,35 @@ Windows support is handled through WSL2 (Windows Subsystem for Linux).
 
 While these dotfiles focus on Linux-like environments, basic PowerShell profiles are included.
 
+### Default Browser
+
+Dev servers (`yarn dev`, Vite, CRA, Storybook) try to open a browser on start.
+Inside WSL2 there is nothing for them to open, so the step silently no-ops.
+
+These dotfiles ship `~/.local/bin/winbrowser`, which passes the URL to Windows
+via `Start-Process`. That goes through the Windows shell's protocol
+association, so it always uses your **current** Windows default browser rather
+than a hardcoded path to Chrome or Edge.
+
+Two hookups, because tools split on which one they honor:
+
+- `$BROWSER` is set to the script in `config.fish.tmpl` (Vite, CRA, Storybook,
+  and anything else using the `open` npm package read this).
+- `~/.local/bin/xdg-open` is a symlink to it, covering tools that call
+  `xdg-open` directly. `~/.local/bin` is prepended to `PATH` by fish, `.profile`
+  (which zsh login shells source via `.zprofile`), and `.bashrc`, so the shim
+  wins over `/usr/bin/xdg-open`.
+
+The script guards itself: on a non-WSL Linux box it `exec`s the real
+`/usr/bin/xdg-open`, so shadowing that name is safe. `.chezmoiignore` also
+keeps both files off macOS and Windows entirely.
+
+The conventional alternative is `wslu`, which provides `wslview`. It is not
+available through Homebrew — it ships via apt/dnf/pacman only — so it needs
+root, which is often unavailable on a work machine. Hence the in-repo script.
+If you do have root and prefer the package: `sudo apt install wslu`, then set
+`BROWSER` to `wslview` (it installs its own `xdg-open` too).
+
 ### WSL Config
 
 Ensure your `.wslconfig` in Windows is set up to handle memory and CPU limits effectively. You can manage this file through Chezmoi if you run it from the Windows side, but it's usually easier to keep it separate.

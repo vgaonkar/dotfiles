@@ -55,6 +55,14 @@ If you cannot push changes to your fork:
 ### WSL2
 - **Interop**: If Windows commands aren't working, check your `/etc/wsl.conf` for interop settings.
 - **Clock Drift**: If `apt` fails with certificate errors, run `sudo hwclock -s` to sync your system clock.
+- **`yarn dev` prints the URL but no browser opens**: Check the two hookups —
+  `echo $BROWSER` should print `~/.local/bin/winbrowser`, and `command -v xdg-open`
+  should resolve to `~/.local/bin/xdg-open`, not `/usr/bin/xdg-open`. Test the
+  launcher directly with `winbrowser https://example.com`. See
+  [Platform-Specific](07-platform-specific.md#default-browser).
+- **The browser opens but the page won't load**: That's a binding problem, not a
+  browser one. The dev server is on `127.0.0.1` only — bind `0.0.0.0` instead
+  (`vite --host`).
 
 ### macOS
 - **XCode Tools**: Ensure they are installed: `xcode-select --install`.

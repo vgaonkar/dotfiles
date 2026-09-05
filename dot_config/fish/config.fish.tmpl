@@ -42,6 +42,13 @@ if test -d $_brew_prefix
 end
 {{- end }}
 
+{{ if eq .chezmoi.os "linux" -}}
+# WSL2: route browser launches (yarn dev, vite, storybook) to Windows
+if grep -qi microsoft /proc/version 2>/dev/null
+    set -gx BROWSER $HOME/.local/bin/winbrowser
+end
+{{ end -}}
+
 {{ if .work_machine -}}
 set -gx WORK_MACHINE true
 {{ end -}}

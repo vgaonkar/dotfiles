@@ -87,6 +87,13 @@ __pycache__/
 windows/
 home/
 
+{{ if ne .chezmoi.os "linux" }}
+# WSL-only browser launcher — never deploy on macOS/Windows.
+# Ignores the whole tree so chezmoi does not create an empty ~/.local either.
+# dot_local/ currently holds only WSL tooling; if a cross-platform script is
+# ever added there, narrow this to .local/bin/winbrowser + .local/bin/xdg-open.
+.local
+{{ end }}
 # Claude Code local secrets & machine state — never manage as dotfiles
 .claude/channels/telegram/.env
 .claude/channels/telegram/notify.conf

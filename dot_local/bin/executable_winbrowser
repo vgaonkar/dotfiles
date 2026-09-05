@@ -1,0 +1,47 @@
+#!/bin/sh
+# winbrowser — hand a URL or file to the Windows default browser from WSL2.
+#
+# Wired up as $BROWSER (fish config) and symlinked as xdg-open. Safe on any
+# Linux: outside WSL it defers to the system xdg-open.
+
+set -eu
+
+if [ "$#" -eq 0 ]; then
+    printf 'usage: %s <url|file>\n' "${0##*/}" >&2
+    exit 64
+fi
+
+# Outside WSL, defer to the real xdg-open (this script shadows it on PATH).
+if ! grep -qi microsoft /proc/version 2>/dev/null; then
+    for real in /usr/bin/xdg-open /bin/xdg-open; do
+        if [ -x "$real" ]; then
+            exec "$real" "$@"
+        fi
+    done
+    printf 'winbrowser: not under WSL and no system xdg-open found\n' >&2
+    exit 1
+fi
+
+# powershell.exe normally resolves through WSL interop; fall back to the
+# absolute path for /etc/wsl.conf with appendWindowsPath=false.
+powershell=$(command -v powershell.exe 2>/dev/null || true)
+if [ -z "$powershell" ]; then
+    powershell=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+fi
+if [ ! -x "$powershell" ]; then
+    printf 'winbrowser: powershell.exe not found (Windows interop disabled?)\n' >&2
+    exit 1
+fi
+
+target=$1
+
+# Translate real local files to a Windows path; leave URLs untouched.
+if [ -e "$target" ]; then
+    target=$(wslpath -w "$(readlink -f "$target")")
+fi
+
+# Double single quotes — PowerShell's escape inside a single-quoted string.
+escaped=$(printf '%s' "$target" | sed "s/'/''/g")
+
+exec "$powershell" -NoProfile -NonInteractive \
+    -Command "Start-Process -FilePath '$escaped'"
